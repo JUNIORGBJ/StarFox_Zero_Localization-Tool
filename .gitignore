@@ -1,0 +1,67 @@
+## Build results
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+*.log
+
+## User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Mono Auto Generated Files
+mono_crash.*
+
+## Visual Studio Code
+.vscode/
+.vs/
+
+## Rider
+.idea/
+
+## ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+## NuGet Packages
+*.nupkg
+*.snupkg
+packages/
+*.nuspec
+
+## DotNetCore
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Entity Framework
+*.dbmdl
+
+## Others
+*.vspscc
+*.vssscc
+*.cache
+*.pdb
+*.mdb
+*.bak
+*.swp
+*.tmp
+*.diff
+*.orig
+
+## Visual Studio
+.vs/
+*.csproj.user
+*.db
+*.sdf
+*.sln.ide
+
+## Test Results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+## Publish
+publish/
