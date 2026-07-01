@@ -29,15 +29,18 @@ namespace StarFoxZeroLocalizationTool
         private Point _newGlyphSelectionStartPoint;
         private bool _isSelectingNewGlyph;
         private bool _newGlyphSelectionMode;
+        private readonly Dictionary<string, Bitmap> _editorPreviewAtlasCache = new(StringComparer.OrdinalIgnoreCase);
         public MainForm()
         {
             InitializeComponent();
+            KeyPreview = true;
             remapTexturePreviewPictureBox.MouseDown += RemapTexturePreviewPictureBox_MouseDown;
             remapTexturePreviewPictureBox.MouseMove += RemapTexturePreviewPictureBox_MouseMove;
             remapTexturePreviewPictureBox.MouseUp += RemapTexturePreviewPictureBox_MouseUp;
             remapGlyphZoomPictureBox.MouseUp += RemapTexturePreviewPictureBox_MouseUp;
             remapTexturePreviewPictureBox.MouseDoubleClick += RemapTexturePreviewPictureBox_MouseDoubleClick;
             remapGlyphZoomPictureBox.MouseDoubleClick += RemapTexturePreviewPictureBox_MouseDoubleClick;
+            FormClosed += MainForm_FormClosed;
             ConfigureInitialState();
         }
 
@@ -53,6 +56,7 @@ namespace StarFoxZeroLocalizationTool
             UpdateNewCharacterBaseInfo(null);
             UpdateNewCharacterSelectionInfo();
             UpdateRemapTexturePreview(null);
+            UpdateEditorPreview();
             UpdateRemapHelper("Carregue um arquivo para remapear caracteres do charset.", InfoColor);
             statusToolStripStatusLabel.Text = "Pronto";
             UpdateUiState(false);
@@ -76,11 +80,13 @@ namespace StarFoxZeroLocalizationTool
             selectNewGlyphButton.Enabled = hasLoadedFile;
             removeCharacterButton.Enabled = hasLoadedFile;
             updateSelectedGlyphButton.Enabled = hasLoadedFile && CanUpdateSelectedGlyph();
+            selectionAdjustStepTextBox.Enabled = hasLoadedFile;
             applyCharRemapButton.Enabled = hasLoadedFile && ValidateRemapInput(showError: false);
             applyLanguageFlagsButton.Enabled = hasLoadedFile && ValidateLanguageFlagsInput(showError: false);
             textTextBox.Enabled = hasLoadedFile && textTextBox.Tag is NodeTag tag && tag.Type == NodeType.String;
             UpdateSearchActionButtons();
             ValidateNewCharacterInput(showError: false);
+            UpdateSelectionAdjustButtonsState();
         }
 
         private void LoadButton_Click(object? sender, EventArgs e)
@@ -98,6 +104,7 @@ namespace StarFoxZeroLocalizationTool
 
             try
             {
+                ClearEditorPreviewAtlasCache();
                 _currentMcd = McdIO.ReadMcd(ofd.FileName);
                 _currentFilePath = ofd.FileName;
                 loadedFileValueLabel.Text = Path.GetFileName(ofd.FileName);
@@ -559,6 +566,7 @@ namespace StarFoxZeroLocalizationTool
             UpdateLanguageFlagsCurrentValue(remapSourceComboBox.SelectedItem as CharRemapOption);
             UpdateNewCharacterBaseInfo(remapSourceComboBox.SelectedItem as CharRemapOption);
             UpdateRemapTexturePreview(remapSourceComboBox.SelectedItem as CharRemapOption);
+            UpdateEditorPreview();
             ValidateRemapInput(showError: false);
             ValidateLanguageFlagsInput(showError: false);
             ValidateNewCharacterInput(showError: false);
@@ -582,6 +590,38 @@ namespace StarFoxZeroLocalizationTool
         private void NewCharacterLanguageTextBox_TextChanged(object? sender, EventArgs e)
         {
             ValidateNewCharacterInput(showError: false);
+        }
+
+        private void SelectionAdjustStepTextBox_TextChanged(object? sender, EventArgs e)
+        {
+            ValidateSelectionAdjustStep(showError: false);
+            UpdateSelectionAdjustButtonsState();
+        }
+
+        private void SelectionAdjustButton_Click(object? sender, EventArgs e)
+        {
+            if (sender is not Button button || button.Tag is not string action)
+            {
+                return;
+            }
+
+            ApplySelectionAdjustAction(action, showValidationError: true);
+        }
+
+        private void ResetSelectionToGlyphButton_Click(object? sender, EventArgs e)
+        {
+            if (_currentAtlasBitmap == null || !TryGetSelectedTextureGraph(out var _, out var graph))
+            {
+                return;
+            }
+
+            if (!string.Equals(_currentPreviewTextureId, graph.TextureID, StringComparison.OrdinalIgnoreCase))
+            {
+                UpdateRemapTexturePreview(remapSourceComboBox.SelectedItem as CharRemapOption);
+            }
+
+            _newGlyphSelectionRect = GetClampedGlyphRectangle(_currentAtlasBitmap.Width, _currentAtlasBitmap.Height, graph);
+            UpdateSelectionAfterManualAdjust();
         }
 
         private void ApplyCharRemapButton_Click(object? sender, EventArgs e)
@@ -642,6 +682,7 @@ namespace StarFoxZeroLocalizationTool
             UpdateRemapHelper(
                 $"Variante ID {sourceOption.CharId} do caractere '{sourceOption.Value}' remapeada para '{targetValue}'.",
                 SuccessColor);
+            UpdateEditorPreview();
             statusToolStripStatusLabel.Text = $"Remapeamento aplicado: ID {sourceOption.CharId} {sourceOption.Value} -> {targetValue}.";
         }
 
@@ -759,6 +800,7 @@ namespace StarFoxZeroLocalizationTool
 
                 selectedEntryLabel.Text = "Nenhuma string selecionada";
                 UpdateEditorHelper("Selecione uma string para editar o texto.", InfoColor);
+                UpdateEditorPreview();
                 validationErrorProvider.SetError(textTextBox, string.Empty);
                 return;
             }
@@ -775,6 +817,7 @@ namespace StarFoxZeroLocalizationTool
             selectedEntryLabel.Text =
                 $"Evento {tag.EventIndex}  |  Paragrafo {tag.ParagraphIndex}  |  String {tag.StringIndex}  |  LanguageFlags {FormatLanguageFlagsReadable(paragraph.LanguageFlags)}";
             ValidateEditorText(entry.Text);
+            UpdateEditorPreview();
             statusToolStripStatusLabel.Text = "String selecionada para edicao.";
         }
 
@@ -799,6 +842,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 PerformSearch(showEmptyValidation: false, focusFirstMatch: false);
             }
+
+            UpdateEditorPreview();
         }
 
         private void ValidateEditorText(string text)
@@ -927,6 +972,67 @@ namespace StarFoxZeroLocalizationTool
         {
             editorHelperLabel.Text = message;
             editorHelperLabel.ForeColor = color;
+        }
+
+        private void UpdateEditorPreview()
+        {
+            if (_currentMcd == null || !TryGetActiveStringContext(out var paragraph, out var entry))
+            {
+                ReplaceEditorPreviewImage(null);
+                editorPreviewInfoLabel.Text = "Linha azul = baseline. Selecione uma string para visualizar a altura dos glifos.";
+                editorPreviewInfoLabel.ForeColor = InfoColor;
+                return;
+            }
+
+            try
+            {
+                var previewLetters = McdIO.BuildPreviewLetters(entry.Text, _currentMcd, entry.Letters, paragraph.LanguageFlags);
+                var previewBitmap = CreateEditorPreviewBitmap(paragraph, entry, previewLetters);
+                ReplaceEditorPreviewImage(previewBitmap);
+                editorPreviewInfoLabel.Text = BuildEditorPreviewInfoText(paragraph, entry);
+                editorPreviewInfoLabel.ForeColor = Color.FromArgb(37, 99, 235);
+            }
+            catch (Exception ex)
+            {
+                ReplaceEditorPreviewImage(CreateEditorPreviewFallbackBitmap(entry.Text));
+                editorPreviewInfoLabel.Text = $"Linha azul = baseline. Previa parcial: {ex.Message}";
+                editorPreviewInfoLabel.ForeColor = WarningColor;
+            }
+        }
+
+        private bool TryGetActiveStringContext(out Paragraph paragraph, out StringEntry entry)
+        {
+            paragraph = null!;
+            entry = null!;
+
+            if (_currentMcd == null || textTextBox.Tag is not NodeTag tag || tag.Type != NodeType.String)
+            {
+                return false;
+            }
+
+            paragraph = _currentMcd.Events[tag.EventIndex].Paragraphs[tag.ParagraphIndex];
+            entry = paragraph.Strings[tag.StringIndex];
+            return true;
+        }
+
+        private string BuildEditorPreviewInfoText(Paragraph paragraph, StringEntry entry)
+        {
+            var info =
+                $"Linha azul = baseline | Paragraph Below {paragraph.BelowSpacing:0.##} | String Below {entry.BelowSpacing:0.##} | String Horizontal {entry.HorizontalSpacing:0.##}";
+
+            if (TryGetSelectedTextureGraph(out var selectedEntry, out var selectedGraph))
+            {
+                info +=
+                    $" | Variante atual '{selectedEntry.Char}' ID {selectedEntry.Id}: Below {selectedGraph.BelowSpacing:0.##}, U_A {selectedGraph.Ua:0.##}";
+
+                if (_newGlyphSelectionRect is Rectangle selectionRect && _currentAtlasBitmap != null &&
+                    string.Equals(_currentPreviewTextureId, selectedGraph.TextureID, StringComparison.OrdinalIgnoreCase))
+                {
+                    info += $" | Previa usando selecao {selectionRect.Width}x{selectionRect.Height}";
+                }
+            }
+
+            return info;
         }
 
         private void UpdateRemapHelper(string message, Color color)
@@ -1069,6 +1175,7 @@ namespace StarFoxZeroLocalizationTool
             UpdateRemapHelper(
                 $"LanguageFlags da variante ID {sourceOption.CharId} atualizado para {FormatLanguageFlagsReadable(newLanguageFlags)}.",
                 SuccessColor);
+            UpdateEditorPreview();
             statusToolStripStatusLabel.Text = $"LanguageFlags alterado na variante ID {sourceOption.CharId}.";
         }
 
@@ -1178,6 +1285,7 @@ namespace StarFoxZeroLocalizationTool
                 $"Variante removida com sucesso: '{sourceOption.Value}' (ID {removedCharId})." +
                 (graphStillUsed ? string.Empty : $" Graph {removedGraphId} tambem removido."),
                 SuccessColor);
+            UpdateEditorPreview();
             statusToolStripStatusLabel.Text = $"Caractere removido: ID {removedCharId}.";
         }
 
@@ -1287,6 +1395,7 @@ namespace StarFoxZeroLocalizationTool
             UpdateRemapHelper(
                 $"Novo caractere '{newCharacter}' cadastrado com ID {newCharId}, graph {newGraphId} e TextureID {baseGraph.TextureID}.",
                 SuccessColor);
+            UpdateEditorPreview();
             statusToolStripStatusLabel.Text = $"Novo caractere cadastrado: '{newCharacter}' (ID {newCharId}).";
         }
 
@@ -1363,6 +1472,7 @@ namespace StarFoxZeroLocalizationTool
                     ? $"Glifo da variante ID {entry.Id} atualizado com nova area da atlas. Como o graph antigo era compartilhado, foi criado o graph {targetGraph.Id} so para essa variante."
                     : $"Glifo da variante ID {entry.Id} atualizado com a nova selecao da atlas.",
                 SuccessColor);
+            UpdateEditorPreview();
             statusToolStripStatusLabel.Text = $"Glifo atualizado na variante ID {entry.Id}.";
         }
 
@@ -1482,9 +1592,10 @@ namespace StarFoxZeroLocalizationTool
         {
             if (_currentMcd == null)
             {
-                newCharacterSelectionLabel.Text = "Selecao do glifo: carregue um MCD e escolha uma variante para atualizar ou usar como base.";
+                newCharacterSelectionLabel.Text = "Selecao do glifo: Escolha uma variante para atualizar ou usar como base.";
                 selectNewGlyphButton.Text = "Selecionar glifo";
                 updateSelectedGlyphButton.Enabled = false;
+                UpdateSelectionAdjustButtonsState();
                 return;
             }
 
@@ -1493,6 +1604,7 @@ namespace StarFoxZeroLocalizationTool
                 newCharacterSelectionLabel.Text = "Selecao do glifo: a atlas real precisa estar carregada para marcar a area.";
                 selectNewGlyphButton.Text = "Selecionar glifo";
                 updateSelectedGlyphButton.Enabled = false;
+                UpdateSelectionAdjustButtonsState();
                 return;
             }
 
@@ -1518,6 +1630,7 @@ namespace StarFoxZeroLocalizationTool
 
             selectNewGlyphButton.Text = _newGlyphSelectionMode ? "Selecionando..." : "Selecionar glifo";
             updateSelectedGlyphButton.Enabled = CanUpdateSelectedGlyph();
+            UpdateSelectionAdjustButtonsState();
         }
 
         private bool ValidateNewCharacterInput(bool showError)
@@ -1656,6 +1769,229 @@ namespace StarFoxZeroLocalizationTool
             UpdateNewCharacterSelectionInfo();
         }
 
+        private bool ValidateSelectionAdjustStep(bool showError)
+        {
+            validationErrorProvider.SetError(selectionAdjustStepTextBox, string.Empty);
+            if (string.IsNullOrWhiteSpace(selectionAdjustStepTextBox.Text))
+            {
+                if (showError)
+                {
+                    validationErrorProvider.SetError(selectionAdjustStepTextBox, "Informe um passo em pixels.");
+                }
+
+                return false;
+            }
+
+            if (!int.TryParse(selectionAdjustStepTextBox.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var step) || step <= 0)
+            {
+                if (showError)
+                {
+                    validationErrorProvider.SetError(selectionAdjustStepTextBox, "Use um numero inteiro positivo.");
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private void UpdateSelectionAdjustButtonsState()
+        {
+            var enabled =
+                _currentMcd != null &&
+                _currentAtlasBitmap != null &&
+                _newGlyphSelectionRect is Rectangle rect &&
+                rect.Width > 0 &&
+                rect.Height > 0 &&
+                ValidateSelectionAdjustStep(showError: false);
+
+            selectionWidthDecreaseButton.Enabled = enabled;
+            selectionWidthIncreaseButton.Enabled = enabled;
+            selectionHeightDecreaseButton.Enabled = enabled;
+            selectionHeightIncreaseButton.Enabled = enabled;
+            selectionLeftDecreaseButton.Enabled = enabled;
+            selectionLeftIncreaseButton.Enabled = enabled;
+            selectionRightDecreaseButton.Enabled = enabled;
+            selectionRightIncreaseButton.Enabled = enabled;
+            selectionTopDecreaseButton.Enabled = enabled;
+            selectionTopIncreaseButton.Enabled = enabled;
+            selectionBottomDecreaseButton.Enabled = enabled;
+            selectionBottomIncreaseButton.Enabled = enabled;
+            resetSelectionToGlyphButton.Enabled =
+                _currentMcd != null &&
+                _currentAtlasBitmap != null &&
+                TryGetSelectedTextureGraph(out var _, out var graph) &&
+                string.Equals(_currentPreviewTextureId, graph.TextureID, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void UpdateSelectionAfterManualAdjust()
+        {
+            UpdateNewCharacterSelectionInfo();
+            ValidateNewCharacterInput(showError: false);
+            ValidateSelectedGlyphUpdate(showError: false);
+            UpdateRemapTexturePreview(remapSourceComboBox.SelectedItem as CharRemapOption);
+            UpdateEditorPreview();
+        }
+
+        private bool ApplySelectionAdjustAction(string action, bool showValidationError)
+        {
+            if (_currentAtlasBitmap == null || _newGlyphSelectionRect is not Rectangle currentRect || !TryGetSelectionAdjustStep(showValidationError, out var step))
+            {
+                return false;
+            }
+
+            var adjustedRect = AdjustSelectionRect(currentRect, _currentAtlasBitmap.Size, action, step);
+            if (adjustedRect == currentRect)
+            {
+                return false;
+            }
+
+            _newGlyphSelectionRect = adjustedRect;
+            UpdateSelectionAfterManualAdjust();
+            return true;
+        }
+
+        private bool TryGetSelectionAdjustStep(bool showError, out int step)
+        {
+            step = 0;
+            if (!ValidateSelectionAdjustStep(showError))
+            {
+                return false;
+            }
+
+            return int.TryParse(selectionAdjustStepTextBox.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out step) && step > 0;
+        }
+
+        private static Rectangle AdjustSelectionRect(Rectangle rect, Size atlasSize, string action, int step)
+        {
+            var left = rect.Left;
+            var top = rect.Top;
+            var right = rect.Right;
+            var bottom = rect.Bottom;
+
+            switch (action)
+            {
+                case "width-":
+                {
+                    var shrinkLeft = Math.Min(step / 2, Math.Max(0, (right - left - 1) / 2));
+                    var shrinkRight = Math.Min(step - shrinkLeft, Math.Max(0, right - left - 1 - shrinkLeft));
+                    left += shrinkLeft;
+                    right -= shrinkRight;
+                    break;
+                }
+                case "width+":
+                    left -= step / 2;
+                    right += step - (step / 2);
+                    break;
+                case "height-":
+                {
+                    var shrinkTop = Math.Min(step / 2, Math.Max(0, (bottom - top - 1) / 2));
+                    var shrinkBottom = Math.Min(step - shrinkTop, Math.Max(0, bottom - top - 1 - shrinkTop));
+                    top += shrinkTop;
+                    bottom -= shrinkBottom;
+                    break;
+                }
+                case "height+":
+                    top -= step / 2;
+                    bottom += step - (step / 2);
+                    break;
+                case "left-":
+                    left += step;
+                    break;
+                case "left+":
+                    left -= step;
+                    break;
+                case "right-":
+                    right -= step;
+                    break;
+                case "right+":
+                    right += step;
+                    break;
+                case "top-":
+                    top += step;
+                    break;
+                case "top+":
+                    top -= step;
+                    break;
+                case "bottom-":
+                    bottom -= step;
+                    break;
+                case "bottom+":
+                    bottom += step;
+                    break;
+                default:
+                    return rect;
+            }
+
+            left = Math.Clamp(left, 0, Math.Max(0, atlasSize.Width - 1));
+            top = Math.Clamp(top, 0, Math.Max(0, atlasSize.Height - 1));
+            right = Math.Clamp(right, left + 1, atlasSize.Width);
+            bottom = Math.Clamp(bottom, top + 1, atlasSize.Height);
+            return Rectangle.FromLTRB(left, top, right, bottom);
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (TryHandleSelectionShortcut(keyData))
+            {
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        private bool TryHandleSelectionShortcut(Keys keyData)
+        {
+            if (!CanHandleSelectionShortcut())
+            {
+                return false;
+            }
+
+            var keyCode = keyData & Keys.KeyCode;
+            var modifiers = keyData & Keys.Modifiers;
+            string? action = null;
+
+            switch (keyCode)
+            {
+                case Keys.Left:
+                    action = modifiers == Keys.Shift ? "right-" : modifiers == Keys.None ? "left+" : null;
+                    break;
+                case Keys.Right:
+                    action = modifiers == Keys.Shift ? "left-" : modifiers == Keys.None ? "right+" : null;
+                    break;
+                case Keys.Up:
+                    action = modifiers == Keys.Shift ? "bottom-" : modifiers == Keys.None ? "top+" : null;
+                    break;
+                case Keys.Down:
+                    action = modifiers == Keys.Shift ? "top-" : modifiers == Keys.None ? "bottom+" : null;
+                    break;
+            }
+
+            return action != null && ApplySelectionAdjustAction(action, showValidationError: false);
+        }
+
+        private bool CanHandleSelectionShortcut()
+        {
+            if (!remapGroupBox.ContainsFocus || _currentAtlasBitmap == null || _newGlyphSelectionRect is not Rectangle)
+            {
+                return false;
+            }
+
+            var focusedControl = GetDeepestActiveControl(this);
+            return focusedControl is not TextBoxBase && focusedControl is not ComboBox;
+        }
+
+        private static Control? GetDeepestActiveControl(ContainerControl parent)
+        {
+            var activeControl = parent.ActiveControl;
+            while (activeControl is ContainerControl container && container.ActiveControl != null)
+            {
+                activeControl = container.ActiveControl;
+            }
+
+            return activeControl;
+        }
+
         private bool CanUpdateSelectedGlyph()
         {
             return _currentMcd != null
@@ -1713,6 +2049,237 @@ namespace StarFoxZeroLocalizationTool
             var oldImage = remapGlyphZoomPictureBox.Image;
             remapGlyphZoomPictureBox.Image = image;
             oldImage?.Dispose();
+        }
+
+        private void ReplaceEditorPreviewImage(Bitmap? image)
+        {
+            var oldImage = editorPreviewPictureBox.Image;
+            editorPreviewPictureBox.Image = image;
+            oldImage?.Dispose();
+        }
+
+        private void MainForm_FormClosed(object? sender, FormClosedEventArgs e)
+        {
+            ClearEditorPreviewAtlasCache();
+            ReplaceEditorPreviewImage(null);
+            ReplaceRemapTexturePreviewImage(null);
+            ReplaceRemapGlyphZoomImage(null);
+            ReplaceCurrentAtlasBitmap(null, null);
+        }
+
+        private void ClearEditorPreviewAtlasCache()
+        {
+            foreach (var bitmap in _editorPreviewAtlasCache.Values)
+            {
+                bitmap.Dispose();
+            }
+
+            _editorPreviewAtlasCache.Clear();
+        }
+
+        private void InvalidateEditorPreviewAtlas(string? textureId = null)
+        {
+            if (string.IsNullOrWhiteSpace(textureId))
+            {
+                ClearEditorPreviewAtlasCache();
+                return;
+            }
+
+            if (_editorPreviewAtlasCache.Remove(textureId, out var bitmap))
+            {
+                bitmap.Dispose();
+            }
+        }
+
+        private Bitmap? GetEditorPreviewAtlasBitmap(string textureId, out string error)
+        {
+            error = string.Empty;
+            if (_editorPreviewAtlasCache.TryGetValue(textureId, out var cachedBitmap))
+            {
+                return cachedBitmap;
+            }
+
+            if (!TextureAtlasPreviewService.TryLoadAtlasBitmap(_currentFilePath, textureId, out var atlasBitmap, out _, out error) ||
+                atlasBitmap == null)
+            {
+                return null;
+            }
+
+            using (atlasBitmap)
+            {
+                cachedBitmap = (Bitmap)atlasBitmap.Clone();
+            }
+
+            _editorPreviewAtlasCache[textureId] = cachedBitmap;
+            return cachedBitmap;
+        }
+
+        private Bitmap CreateEditorPreviewBitmap(Paragraph paragraph, StringEntry entry, List<Letter> previewLetters)
+        {
+            var previewWidth = Math.Max(1, editorPreviewPictureBox.ClientSize.Width);
+            var previewHeight = Math.Max(1, editorPreviewPictureBox.ClientSize.Height);
+            var bitmap = new Bitmap(previewWidth, previewHeight);
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.Clear(Color.White);
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+            var baselineY = previewHeight - 8f;
+            using var baselinePen = new Pen(Color.FromArgb(37, 99, 235), 1.5f);
+            graphics.DrawLine(baselinePen, 8f, baselineY, previewWidth - 8f, baselineY);
+
+            var currentX = 12f + entry.Ua + paragraph.HorizontalSpacing + entry.HorizontalSpacing;
+            var drawLimit = previewWidth - 18f;
+            var ellipsisDrawn = false;
+
+            using var placeholderFont = new Font("Segoe UI", 7.5f, FontStyle.Bold);
+            using var placeholderTextBrush = new SolidBrush(Color.FromArgb(30, 41, 59));
+            using var placeholderBorderPen = new Pen(Color.FromArgb(148, 163, 184), 1f);
+            using var placeholderFillBrush = new SolidBrush(Color.FromArgb(241, 245, 249));
+
+            foreach (var letter in previewLetters)
+            {
+                if (currentX >= drawLimit)
+                {
+                    ellipsisDrawn = true;
+                    break;
+                }
+
+                if (letter.Code == 0x8001)
+                {
+                    currentX += Math.Max(8f, letter.PositionOffset != 0 ? Math.Abs(letter.PositionOffset) : 10f);
+                    continue;
+                }
+
+                if (letter.Code > 0 && letter.Code < 0x8000)
+                {
+                    var charEntry = _currentMcd!.Chars.FirstOrDefault(x => x.Id == letter.Code);
+                    var graph = charEntry != null
+                        ? _currentMcd.CharGraphs.FirstOrDefault(x => x.Id == charEntry.Index)
+                        : null;
+
+                    if (charEntry != null && graph != null)
+                    {
+                        var drawX = currentX + graph.Ua;
+                        var effectiveWidth = graph.Width;
+                        var effectiveHeight = graph.Height;
+                        var atlasBitmap = GetEditorPreviewAtlasBitmap(graph.TextureID, out _);
+                        var glyphRect = atlasBitmap != null
+                            ? GetClampedGlyphRectangle(atlasBitmap.Width, atlasBitmap.Height, graph)
+                            : Rectangle.Empty;
+
+                        if (TryGetPreviewSelectionOverride(charEntry, graph, out var overrideAtlasBitmap, out var overrideRect))
+                        {
+                            atlasBitmap = overrideAtlasBitmap;
+                            glyphRect = overrideRect;
+                            effectiveWidth = overrideRect.Width;
+                            effectiveHeight = overrideRect.Height;
+                        }
+
+                        var drawY = baselineY - effectiveHeight + graph.BelowSpacing;
+                        var advance = Math.Max(4f, graph.HorizontalSpacing > 0f ? graph.HorizontalSpacing : effectiveWidth);
+
+                        if (atlasBitmap != null)
+                        {
+                            graphics.DrawImage(
+                                atlasBitmap,
+                                new RectangleF(drawX, drawY, effectiveWidth, effectiveHeight),
+                                glyphRect,
+                                GraphicsUnit.Pixel);
+                        }
+                        else
+                        {
+                            var fallbackRect = new RectangleF(drawX, baselineY - 14f, Math.Max(12f, effectiveWidth), 14f);
+                            graphics.FillRectangle(placeholderFillBrush, fallbackRect);
+                            graphics.DrawRectangle(placeholderBorderPen, fallbackRect.X, fallbackRect.Y, fallbackRect.Width, fallbackRect.Height);
+                            TextRenderer.DrawText(
+                                graphics,
+                                charEntry.Char,
+                                placeholderFont,
+                                Rectangle.Round(fallbackRect),
+                                Color.FromArgb(30, 41, 59),
+                                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                        }
+
+                        currentX += advance;
+                        continue;
+                    }
+                }
+
+                var tokenText = letter.Code == 0x8003
+                    ? $"[{letter.PositionOffset}]"
+                    : "?";
+                var tokenSize = TextRenderer.MeasureText(tokenText, placeholderFont, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding);
+                var tokenRect = new RectangleF(currentX, baselineY - 14f, tokenSize.Width + 8f, 14f);
+                graphics.FillRectangle(placeholderFillBrush, tokenRect);
+                graphics.DrawRectangle(placeholderBorderPen, tokenRect.X, tokenRect.Y, tokenRect.Width, tokenRect.Height);
+                TextRenderer.DrawText(
+                    graphics,
+                    tokenText,
+                    placeholderFont,
+                    Rectangle.Round(tokenRect),
+                    Color.FromArgb(30, 41, 59),
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+                currentX += tokenRect.Width + 2f;
+            }
+
+            if (ellipsisDrawn)
+            {
+                TextRenderer.DrawText(
+                    graphics,
+                    "...",
+                    placeholderFont,
+                    new Rectangle((int)Math.Max(0f, drawLimit - 18f), (int)(baselineY - 16f), 18, 16),
+                    Color.FromArgb(100, 116, 139),
+                    TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+            }
+
+            return bitmap;
+        }
+
+        private bool TryGetPreviewSelectionOverride(CharEntry charEntry, CharGraph graph, out Bitmap? atlasBitmap, out Rectangle glyphRect)
+        {
+            atlasBitmap = null;
+            glyphRect = Rectangle.Empty;
+
+            if (_currentAtlasBitmap == null || _newGlyphSelectionRect is not Rectangle selectionRect || !TryGetSelectedTextureGraph(out var selectedEntry, out var _))
+            {
+                return false;
+            }
+
+            if (selectedEntry.Id != charEntry.Id || !string.Equals(_currentPreviewTextureId, graph.TextureID, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            atlasBitmap = _currentAtlasBitmap;
+            glyphRect = selectionRect;
+            return true;
+        }
+
+        private Bitmap CreateEditorPreviewFallbackBitmap(string text)
+        {
+            var previewWidth = Math.Max(1, editorPreviewPictureBox.ClientSize.Width);
+            var previewHeight = Math.Max(1, editorPreviewPictureBox.ClientSize.Height);
+            var bitmap = new Bitmap(previewWidth, previewHeight);
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.Clear(Color.White);
+
+            var baselineY = previewHeight - 8f;
+            using var baselinePen = new Pen(Color.FromArgb(37, 99, 235), 1.5f);
+            graphics.DrawLine(baselinePen, 8f, baselineY, previewWidth - 8f, baselineY);
+
+            using var font = new Font("Segoe UI", 9f, FontStyle.Regular);
+            TextRenderer.DrawText(
+                graphics,
+                text,
+                font,
+                new Rectangle(12, Math.Max(0, (int)baselineY - 18), previewWidth - 24, 18),
+                Color.FromArgb(30, 41, 59),
+                TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+
+            return bitmap;
         }
 
         private void RemapTexturePreviewPictureBox_MouseDown(object? sender, MouseEventArgs e)
@@ -1873,7 +2440,9 @@ namespace StarFoxZeroLocalizationTool
                 return;
             }
 
+            InvalidateEditorPreviewAtlas(graph.TextureID);
             UpdateRemapTexturePreview(remapSourceComboBox.SelectedItem as CharRemapOption);
+            UpdateEditorPreview();
             statusToolStripStatusLabel.Text = $"DDS reimportado para a textura {graph.TextureID}.";
             MessageBox.Show(
                 this,
@@ -2240,6 +2809,7 @@ namespace StarFoxZeroLocalizationTool
                 textTextBox.Text = entry.Text;
                 _suppressEditorEvents = false;
                 ValidateEditorText(entry.Text);
+                UpdateEditorPreview();
             }
         }
 

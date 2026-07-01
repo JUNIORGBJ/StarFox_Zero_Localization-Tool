@@ -75,6 +75,21 @@ namespace StarFoxZeroLocalizationTool
             remapSectionDividerPanel = new Panel();
             newCharacterBaseInfoLabel = new Label();
             newCharacterSelectionLabel = new Label();
+            selectionAdjustLabel = new Label();
+            selectionAdjustStepTextBox = new TextBox();
+            selectionWidthDecreaseButton = new Button();
+            selectionWidthIncreaseButton = new Button();
+            selectionHeightDecreaseButton = new Button();
+            selectionHeightIncreaseButton = new Button();
+            selectionLeftDecreaseButton = new Button();
+            selectionLeftIncreaseButton = new Button();
+            selectionRightDecreaseButton = new Button();
+            selectionRightIncreaseButton = new Button();
+            selectionTopDecreaseButton = new Button();
+            selectionTopIncreaseButton = new Button();
+            selectionBottomDecreaseButton = new Button();
+            selectionBottomIncreaseButton = new Button();
+            resetSelectionToGlyphButton = new Button();
             remapTexturePreviewPictureBox = new PictureBox();
             remapGlyphZoomPictureBox = new PictureBox();
             remapTexturePreviewLabel = new Label();
@@ -87,6 +102,8 @@ namespace StarFoxZeroLocalizationTool
             editorRequiredLabel = new Label();
             editorHelperLabel = new Label();
             selectedEntryLabel = new Label();
+            editorPreviewInfoLabel = new Label();
+            editorPreviewPictureBox = new PictureBox();
             textTextBox = new TextBox();
             statusStrip = new StatusStrip();
             statusToolStripStatusLabel = new ToolStripStatusLabel();
@@ -99,6 +116,7 @@ namespace StarFoxZeroLocalizationTool
             ((System.ComponentModel.ISupportInitialize)remapGlyphZoomPictureBox).BeginInit();
             navigationGroupBox.SuspendLayout();
             editorGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)editorPreviewPictureBox).BeginInit();
             statusStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)validationErrorProvider).BeginInit();
             SuspendLayout();
@@ -111,7 +129,7 @@ namespace StarFoxZeroLocalizationTool
             menuStrip.Location = new Point(0, 0);
             menuStrip.Name = "menuStrip";
             menuStrip.Padding = new Padding(7, 2, 0, 2);
-            menuStrip.Size = new Size(1030, 24);
+            menuStrip.Size = new Size(1214, 24);
             menuStrip.TabIndex = 0;
             menuStrip.Text = "menuStrip";
             // 
@@ -183,7 +201,7 @@ namespace StarFoxZeroLocalizationTool
             headerPanel.BackgroundImageLayout = ImageLayout.Zoom;
             headerPanel.Location = new Point(300, 36);
             headerPanel.Name = "headerPanel";
-            headerPanel.Size = new Size(716, 76);
+            headerPanel.Size = new Size(900, 76);
             headerPanel.TabIndex = 1;
             // 
             // fileGroupBox
@@ -263,7 +281,7 @@ namespace StarFoxZeroLocalizationTool
             searchGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
             searchGroupBox.Location = new Point(12, 545);
             searchGroupBox.Name = "searchGroupBox";
-            searchGroupBox.Size = new Size(1004, 137);
+            searchGroupBox.Size = new Size(718, 137);
             searchGroupBox.TabIndex = 3;
             searchGroupBox.TabStop = false;
             searchGroupBox.Text = "Pesquisa";
@@ -447,6 +465,21 @@ namespace StarFoxZeroLocalizationTool
             remapGroupBox.Controls.Add(remapSectionDividerPanel);
             remapGroupBox.Controls.Add(newCharacterBaseInfoLabel);
             remapGroupBox.Controls.Add(newCharacterSelectionLabel);
+            remapGroupBox.Controls.Add(selectionAdjustLabel);
+            remapGroupBox.Controls.Add(selectionAdjustStepTextBox);
+            remapGroupBox.Controls.Add(selectionWidthDecreaseButton);
+            remapGroupBox.Controls.Add(selectionWidthIncreaseButton);
+            remapGroupBox.Controls.Add(selectionHeightDecreaseButton);
+            remapGroupBox.Controls.Add(selectionHeightIncreaseButton);
+            remapGroupBox.Controls.Add(selectionLeftDecreaseButton);
+            remapGroupBox.Controls.Add(selectionLeftIncreaseButton);
+            remapGroupBox.Controls.Add(selectionRightDecreaseButton);
+            remapGroupBox.Controls.Add(selectionRightIncreaseButton);
+            remapGroupBox.Controls.Add(selectionTopDecreaseButton);
+            remapGroupBox.Controls.Add(selectionTopIncreaseButton);
+            remapGroupBox.Controls.Add(selectionBottomDecreaseButton);
+            remapGroupBox.Controls.Add(selectionBottomIncreaseButton);
+            remapGroupBox.Controls.Add(resetSelectionToGlyphButton);
             remapGroupBox.Controls.Add(remapTexturePreviewPictureBox);
             remapGroupBox.Controls.Add(remapGlyphZoomPictureBox);
             remapGroupBox.Controls.Add(remapTexturePreviewLabel);
@@ -455,7 +488,7 @@ namespace StarFoxZeroLocalizationTool
             remapGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
             remapGroupBox.Location = new Point(14, 114);
             remapGroupBox.Name = "remapGroupBox";
-            remapGroupBox.Size = new Size(1002, 425);
+            remapGroupBox.Size = new Size(1186, 425);
             remapGroupBox.TabIndex = 4;
             remapGroupBox.TabStop = false;
             remapGroupBox.Text = "Remapeamento de caractere";
@@ -500,7 +533,7 @@ namespace StarFoxZeroLocalizationTool
             remapTargetTextBox.Location = new Point(562, 24);
             remapTargetTextBox.MaxLength = 2;
             remapTargetTextBox.Name = "remapTargetTextBox";
-            remapTargetTextBox.PlaceholderText = "Ex.: Ã§";
+            remapTargetTextBox.PlaceholderText = "Ex.: ã";
             remapTargetTextBox.Size = new Size(62, 25);
             remapTargetTextBox.TabIndex = 3;
             remapTargetTextBox.TextChanged += RemapTargetTextBox_TextChanged;
@@ -656,7 +689,7 @@ namespace StarFoxZeroLocalizationTool
             newCharacterTextBox.Location = new Point(116, 157);
             newCharacterTextBox.MaxLength = 2;
             newCharacterTextBox.Name = "newCharacterTextBox";
-            newCharacterTextBox.PlaceholderText = "Ex.: Ã§";
+            newCharacterTextBox.PlaceholderText = "Ex.: ã";
             newCharacterTextBox.Size = new Size(52, 25);
             newCharacterTextBox.TabIndex = 16;
             newCharacterTextBox.TextChanged += NewCharacterTextBox_TextChanged;
@@ -775,9 +808,251 @@ namespace StarFoxZeroLocalizationTool
             newCharacterSelectionLabel.ForeColor = Color.FromArgb(71, 85, 105);
             newCharacterSelectionLabel.Location = new Point(12, 208);
             newCharacterSelectionLabel.Name = "newCharacterSelectionLabel";
-            newCharacterSelectionLabel.Size = new Size(942, 15);
+            newCharacterSelectionLabel.Size = new Size(388, 15);
             newCharacterSelectionLabel.TabIndex = 25;
-            newCharacterSelectionLabel.Text = "SeleÃ§Ã£o do glifo: escolha a variante base, marque a Ã¡rea livre no atlas e use o botÃ£o direito para exportar .dds ou dois cliques com o esquerdo para importar um .dds editado.";
+            newCharacterSelectionLabel.Text = "Selecao do glifo: Escolha uma variante para atualizar ou usar como base.";
+            // 
+            // selectionAdjustLabel
+            // 
+            selectionAdjustLabel.AutoSize = true;
+            selectionAdjustLabel.Font = new Font("Segoe UI", 9F);
+            selectionAdjustLabel.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionAdjustLabel.Location = new Point(716, 201);
+            selectionAdjustLabel.Name = "selectionAdjustLabel";
+            selectionAdjustLabel.Size = new Size(191, 15);
+            selectionAdjustLabel.TabIndex = 26;
+            selectionAdjustLabel.Text = "Ajuste fino (px) | setas / Shift+setas";
+            // 
+            // selectionAdjustStepTextBox
+            // 
+            selectionAdjustStepTextBox.BorderStyle = BorderStyle.FixedSingle;
+            selectionAdjustStepTextBox.Font = new Font("Segoe UI", 9F);
+            selectionAdjustStepTextBox.Location = new Point(558, 196);
+            selectionAdjustStepTextBox.Name = "selectionAdjustStepTextBox";
+            selectionAdjustStepTextBox.Size = new Size(46, 23);
+            selectionAdjustStepTextBox.TabIndex = 27;
+            selectionAdjustStepTextBox.Text = "1";
+            selectionAdjustStepTextBox.TextChanged += SelectionAdjustStepTextBox_TextChanged;
+            // 
+            // selectionWidthDecreaseButton
+            // 
+            selectionWidthDecreaseButton.BackColor = Color.White;
+            selectionWidthDecreaseButton.Cursor = Cursors.Hand;
+            selectionWidthDecreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionWidthDecreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionWidthDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionWidthDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionWidthDecreaseButton.Location = new Point(400, 261);
+            selectionWidthDecreaseButton.Name = "selectionWidthDecreaseButton";
+            selectionWidthDecreaseButton.Size = new Size(58, 24);
+            selectionWidthDecreaseButton.TabIndex = 28;
+            selectionWidthDecreaseButton.Tag = "width-";
+            selectionWidthDecreaseButton.Text = "Larg -";
+            selectionWidthDecreaseButton.UseVisualStyleBackColor = false;
+            selectionWidthDecreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionWidthIncreaseButton
+            // 
+            selectionWidthIncreaseButton.BackColor = Color.White;
+            selectionWidthIncreaseButton.Cursor = Cursors.Hand;
+            selectionWidthIncreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionWidthIncreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionWidthIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionWidthIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionWidthIncreaseButton.Location = new Point(400, 239);
+            selectionWidthIncreaseButton.Name = "selectionWidthIncreaseButton";
+            selectionWidthIncreaseButton.Size = new Size(58, 24);
+            selectionWidthIncreaseButton.TabIndex = 29;
+            selectionWidthIncreaseButton.Tag = "width+";
+            selectionWidthIncreaseButton.Text = "Larg +";
+            selectionWidthIncreaseButton.UseVisualStyleBackColor = false;
+            selectionWidthIncreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionHeightDecreaseButton
+            // 
+            selectionHeightDecreaseButton.BackColor = Color.White;
+            selectionHeightDecreaseButton.Cursor = Cursors.Hand;
+            selectionHeightDecreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionHeightDecreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionHeightDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionHeightDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionHeightDecreaseButton.Location = new Point(618, 239);
+            selectionHeightDecreaseButton.Name = "selectionHeightDecreaseButton";
+            selectionHeightDecreaseButton.Size = new Size(58, 24);
+            selectionHeightDecreaseButton.TabIndex = 30;
+            selectionHeightDecreaseButton.Tag = "height-";
+            selectionHeightDecreaseButton.Text = "Alt -";
+            selectionHeightDecreaseButton.UseVisualStyleBackColor = false;
+            selectionHeightDecreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionHeightIncreaseButton
+            // 
+            selectionHeightIncreaseButton.BackColor = Color.White;
+            selectionHeightIncreaseButton.Cursor = Cursors.Hand;
+            selectionHeightIncreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionHeightIncreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionHeightIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionHeightIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionHeightIncreaseButton.Location = new Point(618, 265);
+            selectionHeightIncreaseButton.Name = "selectionHeightIncreaseButton";
+            selectionHeightIncreaseButton.Size = new Size(58, 24);
+            selectionHeightIncreaseButton.TabIndex = 31;
+            selectionHeightIncreaseButton.Tag = "height+";
+            selectionHeightIncreaseButton.Text = "Alt +";
+            selectionHeightIncreaseButton.UseVisualStyleBackColor = false;
+            selectionHeightIncreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionLeftDecreaseButton
+            // 
+            selectionLeftDecreaseButton.BackColor = Color.White;
+            selectionLeftDecreaseButton.Cursor = Cursors.Hand;
+            selectionLeftDecreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionLeftDecreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionLeftDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionLeftDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionLeftDecreaseButton.Location = new Point(400, 336);
+            selectionLeftDecreaseButton.Name = "selectionLeftDecreaseButton";
+            selectionLeftDecreaseButton.Size = new Size(58, 24);
+            selectionLeftDecreaseButton.TabIndex = 32;
+            selectionLeftDecreaseButton.Tag = "left-";
+            selectionLeftDecreaseButton.Text = "Esq -";
+            selectionLeftDecreaseButton.UseVisualStyleBackColor = false;
+            selectionLeftDecreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionLeftIncreaseButton
+            // 
+            selectionLeftIncreaseButton.BackColor = Color.White;
+            selectionLeftIncreaseButton.Cursor = Cursors.Hand;
+            selectionLeftIncreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionLeftIncreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionLeftIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionLeftIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionLeftIncreaseButton.Location = new Point(399, 308);
+            selectionLeftIncreaseButton.Name = "selectionLeftIncreaseButton";
+            selectionLeftIncreaseButton.Size = new Size(58, 24);
+            selectionLeftIncreaseButton.TabIndex = 33;
+            selectionLeftIncreaseButton.Tag = "left+";
+            selectionLeftIncreaseButton.Text = "Esq +";
+            selectionLeftIncreaseButton.UseVisualStyleBackColor = false;
+            selectionLeftIncreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionRightDecreaseButton
+            // 
+            selectionRightDecreaseButton.BackColor = Color.White;
+            selectionRightDecreaseButton.Cursor = Cursors.Hand;
+            selectionRightDecreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionRightDecreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionRightDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionRightDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionRightDecreaseButton.Location = new Point(618, 336);
+            selectionRightDecreaseButton.Name = "selectionRightDecreaseButton";
+            selectionRightDecreaseButton.Size = new Size(58, 24);
+            selectionRightDecreaseButton.TabIndex = 34;
+            selectionRightDecreaseButton.Tag = "right-";
+            selectionRightDecreaseButton.Text = "Dir -";
+            selectionRightDecreaseButton.UseVisualStyleBackColor = false;
+            selectionRightDecreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionRightIncreaseButton
+            // 
+            selectionRightIncreaseButton.BackColor = Color.White;
+            selectionRightIncreaseButton.Cursor = Cursors.Hand;
+            selectionRightIncreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionRightIncreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionRightIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionRightIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionRightIncreaseButton.Location = new Point(618, 308);
+            selectionRightIncreaseButton.Name = "selectionRightIncreaseButton";
+            selectionRightIncreaseButton.Size = new Size(58, 24);
+            selectionRightIncreaseButton.TabIndex = 35;
+            selectionRightIncreaseButton.Tag = "right+";
+            selectionRightIncreaseButton.Text = "Dir +";
+            selectionRightIncreaseButton.UseVisualStyleBackColor = false;
+            selectionRightIncreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionTopDecreaseButton
+            // 
+            selectionTopDecreaseButton.BackColor = Color.White;
+            selectionTopDecreaseButton.Cursor = Cursors.Hand;
+            selectionTopDecreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionTopDecreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionTopDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionTopDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionTopDecreaseButton.Location = new Point(478, 227);
+            selectionTopDecreaseButton.Name = "selectionTopDecreaseButton";
+            selectionTopDecreaseButton.Size = new Size(56, 24);
+            selectionTopDecreaseButton.TabIndex = 36;
+            selectionTopDecreaseButton.Tag = "top-";
+            selectionTopDecreaseButton.Text = "Topo -";
+            selectionTopDecreaseButton.UseVisualStyleBackColor = false;
+            selectionTopDecreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionTopIncreaseButton
+            // 
+            selectionTopIncreaseButton.BackColor = Color.White;
+            selectionTopIncreaseButton.Cursor = Cursors.Hand;
+            selectionTopIncreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionTopIncreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionTopIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionTopIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionTopIncreaseButton.Location = new Point(536, 227);
+            selectionTopIncreaseButton.Name = "selectionTopIncreaseButton";
+            selectionTopIncreaseButton.Size = new Size(56, 24);
+            selectionTopIncreaseButton.TabIndex = 37;
+            selectionTopIncreaseButton.Tag = "top+";
+            selectionTopIncreaseButton.Text = "Topo +";
+            selectionTopIncreaseButton.UseVisualStyleBackColor = false;
+            selectionTopIncreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionBottomDecreaseButton
+            // 
+            selectionBottomDecreaseButton.BackColor = Color.White;
+            selectionBottomDecreaseButton.Cursor = Cursors.Hand;
+            selectionBottomDecreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionBottomDecreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionBottomDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionBottomDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionBottomDecreaseButton.Location = new Point(476, 384);
+            selectionBottomDecreaseButton.Name = "selectionBottomDecreaseButton";
+            selectionBottomDecreaseButton.Size = new Size(58, 24);
+            selectionBottomDecreaseButton.TabIndex = 38;
+            selectionBottomDecreaseButton.Tag = "bottom-";
+            selectionBottomDecreaseButton.Text = "Base -";
+            selectionBottomDecreaseButton.UseVisualStyleBackColor = false;
+            selectionBottomDecreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // selectionBottomIncreaseButton
+            // 
+            selectionBottomIncreaseButton.BackColor = Color.White;
+            selectionBottomIncreaseButton.Cursor = Cursors.Hand;
+            selectionBottomIncreaseButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            selectionBottomIncreaseButton.FlatStyle = FlatStyle.Flat;
+            selectionBottomIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            selectionBottomIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
+            selectionBottomIncreaseButton.Location = new Point(536, 384);
+            selectionBottomIncreaseButton.Name = "selectionBottomIncreaseButton";
+            selectionBottomIncreaseButton.Size = new Size(58, 24);
+            selectionBottomIncreaseButton.TabIndex = 39;
+            selectionBottomIncreaseButton.Tag = "bottom+";
+            selectionBottomIncreaseButton.Text = "Base +";
+            selectionBottomIncreaseButton.UseVisualStyleBackColor = false;
+            selectionBottomIncreaseButton.Click += SelectionAdjustButton_Click;
+            // 
+            // resetSelectionToGlyphButton
+            // 
+            resetSelectionToGlyphButton.BackColor = Color.White;
+            resetSelectionToGlyphButton.Cursor = Cursors.Hand;
+            resetSelectionToGlyphButton.FlatAppearance.BorderColor = Color.FromArgb(203, 213, 225);
+            resetSelectionToGlyphButton.FlatStyle = FlatStyle.Flat;
+            resetSelectionToGlyphButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
+            resetSelectionToGlyphButton.ForeColor = Color.FromArgb(15, 23, 42);
+            resetSelectionToGlyphButton.Location = new Point(618, 196);
+            resetSelectionToGlyphButton.Name = "resetSelectionToGlyphButton";
+            resetSelectionToGlyphButton.Size = new Size(92, 24);
+            resetSelectionToGlyphButton.TabIndex = 40;
+            resetSelectionToGlyphButton.Text = "Resetar glifo";
+            resetSelectionToGlyphButton.UseVisualStyleBackColor = false;
+            resetSelectionToGlyphButton.Click += ResetSelectionToGlyphButton_Click;
             // 
             // remapTexturePreviewPictureBox
             // 
@@ -794,9 +1069,9 @@ namespace StarFoxZeroLocalizationTool
             // 
             remapGlyphZoomPictureBox.BackColor = Color.FromArgb(248, 250, 252);
             remapGlyphZoomPictureBox.BorderStyle = BorderStyle.FixedSingle;
-            remapGlyphZoomPictureBox.Location = new Point(379, 227);
+            remapGlyphZoomPictureBox.Location = new Point(463, 254);
             remapGlyphZoomPictureBox.Name = "remapGlyphZoomPictureBox";
-            remapGlyphZoomPictureBox.Size = new Size(178, 165);
+            remapGlyphZoomPictureBox.Size = new Size(144, 124);
             remapGlyphZoomPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             remapGlyphZoomPictureBox.TabIndex = 37;
             remapGlyphZoomPictureBox.TabStop = false;
@@ -805,10 +1080,10 @@ namespace StarFoxZeroLocalizationTool
             // 
             remapTexturePreviewLabel.Font = new Font("Segoe UI", 9F);
             remapTexturePreviewLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            remapTexturePreviewLabel.Location = new Point(562, 227);
+            remapTexturePreviewLabel.Location = new Point(698, 227);
             remapTexturePreviewLabel.Name = "remapTexturePreviewLabel";
-            remapTexturePreviewLabel.Size = new Size(434, 165);
-            remapTexturePreviewLabel.TabIndex = 38;
+            remapTexturePreviewLabel.Size = new Size(361, 165);
+            remapTexturePreviewLabel.TabIndex = 41;
             remapTexturePreviewLabel.Text = "A posicao da letra na textura aparecera aqui.";
             // 
             // remapHelperLabel
@@ -831,7 +1106,7 @@ namespace StarFoxZeroLocalizationTool
             navigationGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
             navigationGroupBox.Location = new Point(14, 685);
             navigationGroupBox.Name = "navigationGroupBox";
-            navigationGroupBox.Size = new Size(332, 261);
+            navigationGroupBox.Size = new Size(419, 258);
             navigationGroupBox.TabIndex = 5;
             navigationGroupBox.TabStop = false;
             navigationGroupBox.Text = "Navegacao";
@@ -856,7 +1131,7 @@ namespace StarFoxZeroLocalizationTool
             eventTreeView.HideSelection = false;
             eventTreeView.Location = new Point(12, 50);
             eventTreeView.Name = "eventTreeView";
-            eventTreeView.Size = new Size(308, 237);
+            eventTreeView.Size = new Size(395, 202);
             eventTreeView.TabIndex = 1;
             eventTreeView.AfterSelect += EventTreeView_AfterSelect;
             // 
@@ -867,12 +1142,14 @@ namespace StarFoxZeroLocalizationTool
             editorGroupBox.Controls.Add(editorRequiredLabel);
             editorGroupBox.Controls.Add(editorHelperLabel);
             editorGroupBox.Controls.Add(selectedEntryLabel);
+            editorGroupBox.Controls.Add(editorPreviewInfoLabel);
+            editorGroupBox.Controls.Add(editorPreviewPictureBox);
             editorGroupBox.Controls.Add(textTextBox);
             editorGroupBox.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
             editorGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
-            editorGroupBox.Location = new Point(357, 685);
+            editorGroupBox.Location = new Point(439, 685);
             editorGroupBox.Name = "editorGroupBox";
-            editorGroupBox.Size = new Size(659, 261);
+            editorGroupBox.Size = new Size(759, 258);
             editorGroupBox.TabIndex = 6;
             editorGroupBox.TabStop = false;
             editorGroupBox.Text = "Edicao";
@@ -921,11 +1198,35 @@ namespace StarFoxZeroLocalizationTool
             selectedEntryLabel.TabIndex = 3;
             selectedEntryLabel.Text = "Nenhuma string selecionada";
             // 
+            // editorPreviewInfoLabel
+            // 
+            editorPreviewInfoLabel.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            editorPreviewInfoLabel.AutoEllipsis = true;
+            editorPreviewInfoLabel.Font = new Font("Segoe UI", 8.75F);
+            editorPreviewInfoLabel.ForeColor = Color.FromArgb(37, 99, 235);
+            editorPreviewInfoLabel.Location = new Point(12, 150);
+            editorPreviewInfoLabel.Name = "editorPreviewInfoLabel";
+            editorPreviewInfoLabel.Size = new Size(735, 18);
+            editorPreviewInfoLabel.TabIndex = 5;
+            editorPreviewInfoLabel.Text = "Linha azul = baseline. A pre-visualizacao aparecera aqui abaixo.";
+            // 
+            // editorPreviewPictureBox
+            // 
+            editorPreviewPictureBox.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            editorPreviewPictureBox.BackColor = Color.FromArgb(248, 250, 252);
+            editorPreviewPictureBox.BorderStyle = BorderStyle.FixedSingle;
+            editorPreviewPictureBox.Location = new Point(12, 171);
+            editorPreviewPictureBox.Name = "editorPreviewPictureBox";
+            editorPreviewPictureBox.Size = new Size(735, 81);
+            editorPreviewPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+            editorPreviewPictureBox.TabIndex = 6;
+            editorPreviewPictureBox.TabStop = false;
+            // 
             // textTextBox
             // 
             textTextBox.AcceptsReturn = true;
             textTextBox.AcceptsTab = true;
-            textTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            textTextBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             textTextBox.BackColor = Color.White;
             textTextBox.BorderStyle = BorderStyle.FixedSingle;
             textTextBox.Enabled = false;
@@ -934,7 +1235,7 @@ namespace StarFoxZeroLocalizationTool
             textTextBox.Multiline = true;
             textTextBox.Name = "textTextBox";
             textTextBox.ScrollBars = ScrollBars.Vertical;
-            textTextBox.Size = new Size(635, 237);
+            textTextBox.Size = new Size(735, 58);
             textTextBox.TabIndex = 4;
             textTextBox.TextChanged += TextTextBox_TextChanged;
             // 
@@ -943,10 +1244,10 @@ namespace StarFoxZeroLocalizationTool
             statusStrip.BackColor = Color.White;
             statusStrip.ImageScalingSize = new Size(20, 20);
             statusStrip.Items.AddRange(new ToolStripItem[] { statusToolStripStatusLabel });
-            statusStrip.Location = new Point(0, 930);
+            statusStrip.Location = new Point(0, 946);
             statusStrip.Name = "statusStrip";
             statusStrip.Padding = new Padding(10, 0, 10, 0);
-            statusStrip.Size = new Size(1030, 22);
+            statusStrip.Size = new Size(1214, 22);
             statusStrip.TabIndex = 7;
             statusStrip.Text = "statusStrip";
             // 
@@ -965,7 +1266,7 @@ namespace StarFoxZeroLocalizationTool
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(245, 247, 250);
-            ClientSize = new Size(1030, 952);
+            ClientSize = new Size(1214, 968);
             Controls.Add(editorGroupBox);
             Controls.Add(navigationGroupBox);
             Controls.Add(remapGroupBox);
@@ -994,6 +1295,7 @@ namespace StarFoxZeroLocalizationTool
             navigationGroupBox.PerformLayout();
             editorGroupBox.ResumeLayout(false);
             editorGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)editorPreviewPictureBox).EndInit();
             statusStrip.ResumeLayout(false);
             statusStrip.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)validationErrorProvider).EndInit();
@@ -1056,6 +1358,21 @@ namespace StarFoxZeroLocalizationTool
         private Panel remapSectionDividerPanel = null!;
         private Label newCharacterSelectionLabel = null!;
         private Label newCharacterBaseInfoLabel = null!;
+        private Label selectionAdjustLabel = null!;
+        private TextBox selectionAdjustStepTextBox = null!;
+        private Button selectionWidthDecreaseButton = null!;
+        private Button selectionWidthIncreaseButton = null!;
+        private Button selectionHeightDecreaseButton = null!;
+        private Button selectionHeightIncreaseButton = null!;
+        private Button selectionLeftDecreaseButton = null!;
+        private Button selectionLeftIncreaseButton = null!;
+        private Button selectionRightDecreaseButton = null!;
+        private Button selectionRightIncreaseButton = null!;
+        private Button selectionTopDecreaseButton = null!;
+        private Button selectionTopIncreaseButton = null!;
+        private Button selectionBottomDecreaseButton = null!;
+        private Button selectionBottomIncreaseButton = null!;
+        private Button resetSelectionToGlyphButton = null!;
         private PictureBox remapTexturePreviewPictureBox = null!;
         private PictureBox remapGlyphZoomPictureBox = null!;
         private Label remapTexturePreviewLabel = null!;
@@ -1069,6 +1386,8 @@ namespace StarFoxZeroLocalizationTool
         private Label selectedEntryLabel = null!;
         private TextBox textTextBox = null!;
         private Label editorHelperLabel = null!;
+        private Label editorPreviewInfoLabel = null!;
+        private PictureBox editorPreviewPictureBox = null!;
         private StatusStrip statusStrip = null!;
         private ToolStripStatusLabel statusToolStripStatusLabel = null!;
         private ErrorProvider validationErrorProvider = null!;

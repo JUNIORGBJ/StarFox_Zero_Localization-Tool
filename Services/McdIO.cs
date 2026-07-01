@@ -440,6 +440,20 @@ namespace StarFoxZeroLocalizationTool.Services
         #endregion
 
         #region Helpers: Text <-> Letters
+        public static List<Letter> BuildPreviewLetters(
+            string text,
+            McdFile mcd,
+            List<Letter> originalLetters,
+            int paragraphLanguageFlags)
+        {
+            if (mcd == null)
+            {
+                throw new ArgumentNullException(nameof(mcd));
+            }
+
+            return TextToLetters(text, mcd.Chars, originalLetters ?? new List<Letter>(), paragraphLanguageFlags);
+        }
+
         private static List<Letter> TextToLetters(string text, List<CharEntry> charset, List<Letter> originalLetters, int paragraphLanguageFlags)
         {
             var defaultSpaceOffset = GetDefaultSpaceOffset(originalLetters);
