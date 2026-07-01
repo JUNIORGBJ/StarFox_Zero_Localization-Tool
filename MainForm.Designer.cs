@@ -371,7 +371,7 @@ namespace StarFoxZeroLocalizationTool
             // 
             // searchButton
             // 
-            searchButton.BackColor = Color.Gold;
+            searchButton.BackColor = SystemColors.GrayText;
             searchButton.Cursor = Cursors.Hand;
             searchButton.FlatAppearance.BorderSize = 0;
             searchButton.FlatStyle = FlatStyle.Flat;
@@ -540,7 +540,7 @@ namespace StarFoxZeroLocalizationTool
             // 
             // applyCharRemapButton
             // 
-            applyCharRemapButton.BackColor = Color.Gold;
+            applyCharRemapButton.BackColor = SystemColors.GrayText;
             applyCharRemapButton.Cursor = Cursors.Hand;
             applyCharRemapButton.Enabled = false;
             applyCharRemapButton.FlatAppearance.BorderSize = 0;
@@ -601,7 +601,7 @@ namespace StarFoxZeroLocalizationTool
             // 
             // applyLanguageFlagsButton
             // 
-            applyLanguageFlagsButton.BackColor = Color.Gold;
+            applyLanguageFlagsButton.BackColor = SystemColors.GrayText;
             applyLanguageFlagsButton.Cursor = Cursors.Hand;
             applyLanguageFlagsButton.Enabled = false;
             applyLanguageFlagsButton.FlatAppearance.BorderSize = 0;
