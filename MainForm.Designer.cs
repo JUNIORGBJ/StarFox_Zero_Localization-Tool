@@ -500,18 +500,18 @@ namespace StarFoxZeroLocalizationTool
             remapSourceLabel.ForeColor = Color.FromArgb(15, 23, 42);
             remapSourceLabel.Location = new Point(12, 28);
             remapSourceLabel.Name = "remapSourceLabel";
-            remapSourceLabel.Size = new Size(123, 17);
+            remapSourceLabel.Size = new Size(64, 17);
             remapSourceLabel.TabIndex = 0;
-            remapSourceLabel.Text = "Caractere / variante";
+            remapSourceLabel.Text = "Caractere";
             // 
             // remapSourceComboBox
             // 
             remapSourceComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
             remapSourceComboBox.Font = new Font("Segoe UI", 10F);
             remapSourceComboBox.FormattingEnabled = true;
-            remapSourceComboBox.Location = new Point(143, 24);
+            remapSourceComboBox.Location = new Point(80, 24);
             remapSourceComboBox.Name = "remapSourceComboBox";
-            remapSourceComboBox.Size = new Size(307, 25);
+            remapSourceComboBox.Size = new Size(373, 25);
             remapSourceComboBox.TabIndex = 1;
             remapSourceComboBox.SelectedIndexChanged += RemapSourceComboBox_SelectedIndexChanged;
             // 

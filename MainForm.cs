@@ -885,7 +885,8 @@ namespace StarFoxZeroLocalizationTool
                             entry.Id,
                             entry.CharCode,
                             index + 1,
-                            group.Count())))
+                            group.Count(),
+                            entry.LanguageFlags)))
                     .ToArray();
 
                 remapSourceComboBox.Items.AddRange(options);
@@ -2747,7 +2748,13 @@ namespace StarFoxZeroLocalizationTool
                 {
                     foreach (var str in paragraph.Strings)
                     {
-                        count += str.Letters.Count(letter => letter.Code == charId);
+                        foreach (var letter in str.Letters)
+                        {
+                            if (letter.Code == charId)
+                            {
+                                count++;
+                            }
+                        }
                     }
                 }
             }
@@ -2965,7 +2972,7 @@ namespace StarFoxZeroLocalizationTool
 
         private readonly record struct SearchMatch(NodeTag Tag, int Index);
 
-        private sealed record CharRemapOption(string Value, int CharId, int CharCode, int VariantIndex, int VariantsCount)
+        private sealed record CharRemapOption(string Value, int CharId, int CharCode, int VariantIndex, int VariantsCount, int LanguageFlags)
         {
             public override string ToString()
             {
@@ -2973,7 +2980,9 @@ namespace StarFoxZeroLocalizationTool
                     ? $"U+{CharCode:X4}"
                     : "sem codigo";
 
-                return $"{Value} | variante {VariantIndex}/{VariantsCount} | ID {CharId} | {codeLabel}";
+                var languageFlagsLabel = FormatLanguageFlagsReadable(LanguageFlags);
+
+                return $"{Value} | variante {VariantIndex}/{VariantsCount} | ID {CharId} | {codeLabel} | L.F {languageFlagsLabel}";
             }
         }
     }
