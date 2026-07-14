@@ -72,6 +72,7 @@ namespace StarFoxZeroLocalizationTool
             caseSensitiveCheckBox.Enabled = hasLoadedFile;
             replaceTextBox.Enabled = hasLoadedFile;
             searchButton.Enabled = hasLoadedFile;
+            validateCharsetButton.Enabled = hasLoadedFile;
             remapSourceComboBox.Enabled = hasLoadedFile;
             remapTargetTextBox.Enabled = hasLoadedFile;
             remapLanguageTargetTextBox.Enabled = hasLoadedFile;
@@ -467,6 +468,37 @@ namespace StarFoxZeroLocalizationTool
                 SuccessColor);
             statusToolStripStatusLabel.Text =
                 $"Substituicao concluida: {totalReplacements} ocorrencia(s) em {changedStrings} string(s).";
+        }
+
+        private void ValidateCharsetButton_Click(object? sender, EventArgs e)
+        {
+            if (_currentMcd == null)
+            {
+                return;
+            }
+
+            var validation = McdIO.ValidateCharsetCoverage(_currentMcd);
+            if (validation.Issues.Count == 0)
+            {
+                UpdateSearchHelper(
+                    $"Verificacao concluida: {validation.TotalStringsChecked} string(s) analisadas, sem problemas de charset/LanguageFlags.",
+                    SuccessColor);
+                statusToolStripStatusLabel.Text = "Verificacao de charset concluida sem problemas.";
+                MessageBox.Show(
+                    this,
+                    $"Nenhum problema encontrado.{Environment.NewLine}{Environment.NewLine}" +
+                    $"Strings analisadas: {validation.TotalStringsChecked}",
+                    "Verificar charset / LanguageFlags",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            UpdateSearchHelper(
+                $"Verificacao concluida: {validation.Issues.Count} problema(s) em {validation.AffectedStringsCount} string(s).",
+                WarningColor);
+            statusToolStripStatusLabel.Text = $"Charset/LF: {validation.Issues.Count} problema(s) encontrados.";
+            ShowTextReportDialog("Relatorio de charset / LanguageFlags", BuildCharsetValidationReport(validation));
         }
 
         private void PerformSearch(bool showEmptyValidation = true, bool focusFirstMatch = true)
@@ -967,6 +999,110 @@ namespace StarFoxZeroLocalizationTool
         {
             searchHelperLabel.Text = message;
             searchHelperLabel.ForeColor = color;
+        }
+
+        private string BuildCharsetValidationReport(McdIO.CharsetValidationResult validation)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine("RELATORIO DE CHARSET / LANGUAGEFLAGS");
+            builder.AppendLine();
+            builder.AppendLine($"Strings analisadas: {validation.TotalStringsChecked}");
+            builder.AppendLine($"Strings com problema: {validation.AffectedStringsCount}");
+            builder.AppendLine($"Caracteres sem cadastro: {validation.MissingCharacterCount}");
+            builder.AppendLine($"Caracteres sem variante no LanguageFlags correto: {validation.LanguageFlagsMismatchCount}");
+            builder.AppendLine();
+
+            foreach (var issue in validation.Issues
+                         .OrderBy(x => x.EventIndex)
+                         .ThenBy(x => x.ParagraphIndex)
+                         .ThenBy(x => x.StringIndex)
+                         .ThenBy(x => x.Character, StringComparer.Ordinal))
+            {
+                builder.AppendLine(issue.Kind == McdIO.CharsetValidationIssueKind.MissingCharacter
+                    ? "[Sem cadastro no charset]"
+                    : "[Sem variante no LanguageFlags do paragrafo]");
+                builder.AppendLine($"Evento: {issue.EventName} ({issue.EventId})");
+                builder.AppendLine($"Indices: Evento {issue.EventIndex} | Paragrafo {issue.ParagraphIndex} | String {issue.StringIndex}");
+                builder.AppendLine($"LanguageFlags do paragrafo: {FormatLanguageFlagsReadable(issue.ParagraphLanguageFlags)}");
+                builder.AppendLine($"Caractere: '{issue.Character}'");
+                if (!string.IsNullOrWhiteSpace(issue.AvailableLanguageFlagsSummary))
+                {
+                    builder.AppendLine($"Disponivel no charset: {issue.AvailableLanguageFlagsSummary}");
+                }
+
+                builder.AppendLine($"Texto: {issue.StringText}");
+                builder.AppendLine(new string('-', 90));
+            }
+
+            return builder.ToString().TrimEnd();
+        }
+
+        private void ShowTextReportDialog(string title, string content)
+        {
+            using var dialog = new Form
+            {
+                Text = title,
+                StartPosition = FormStartPosition.CenterParent,
+                MinimizeBox = false,
+                MaximizeBox = true,
+                MinimumSize = new Size(760, 420),
+                Size = new Size(980, 620)
+            };
+
+            var reportTextBox = new TextBox
+            {
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Both,
+                WordWrap = false,
+                Font = new Font("Consolas", 10F),
+                Dock = DockStyle.Fill,
+                Text = content
+            };
+
+            var copyButton = new Button
+            {
+                Text = "Copiar relatorio",
+                AutoSize = true,
+                BackColor = Color.FromArgb(37, 99, 235),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(8)
+            };
+            copyButton.FlatAppearance.BorderSize = 0;
+            copyButton.Click += (_, _) =>
+            {
+                Clipboard.SetText(reportTextBox.Text);
+                MessageBox.Show(
+                    dialog,
+                    "Relatorio copiado para a area de transferencia.",
+                    "Copiar relatorio",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            };
+
+            var closeButton = new Button
+            {
+                Text = "Fechar",
+                AutoSize = true,
+                Margin = new Padding(8)
+            };
+            closeButton.Click += (_, _) => dialog.Close();
+
+            var buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 44,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding = new Padding(6),
+                WrapContents = false
+            };
+            buttonPanel.Controls.Add(closeButton);
+            buttonPanel.Controls.Add(copyButton);
+
+            dialog.Controls.Add(reportTextBox);
+            dialog.Controls.Add(buttonPanel);
+            dialog.ShowDialog(this);
         }
 
         private void UpdateEditorHelper(string message, Color color)

@@ -48,12 +48,15 @@ namespace StarFoxZeroLocalizationTool
             nextMatchButton = new Button();
             replaceCurrentButton = new Button();
             replaceAllButton = new Button();
+            validateCharsetButton = new Button();
             remapGroupBox = new GroupBox();
+            remapTexturePreviewPictureBox = new PictureBox();
             remapSourceLabel = new Label();
             remapSourceComboBox = new ComboBox();
             remapTargetLabel = new Label();
             remapTargetTextBox = new TextBox();
             applyCharRemapButton = new Button();
+            remapHelperLabel = new Label();
             remapLanguageCurrentLabel = new Label();
             remapLanguageCurrentValueLabel = new Label();
             remapLanguageTargetLabel = new Label();
@@ -90,10 +93,8 @@ namespace StarFoxZeroLocalizationTool
             selectionBottomDecreaseButton = new Button();
             selectionBottomIncreaseButton = new Button();
             resetSelectionToGlyphButton = new Button();
-            remapTexturePreviewPictureBox = new PictureBox();
             remapGlyphZoomPictureBox = new PictureBox();
             remapTexturePreviewLabel = new Label();
-            remapHelperLabel = new Label();
             navigationGroupBox = new GroupBox();
             navigationSummaryLabel = new Label();
             eventTreeView = new TreeView();
@@ -277,11 +278,12 @@ namespace StarFoxZeroLocalizationTool
             searchGroupBox.Controls.Add(nextMatchButton);
             searchGroupBox.Controls.Add(replaceCurrentButton);
             searchGroupBox.Controls.Add(replaceAllButton);
+            searchGroupBox.Controls.Add(validateCharsetButton);
             searchGroupBox.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
             searchGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
-            searchGroupBox.Location = new Point(12, 545);
+            searchGroupBox.Location = new Point(425, 428);
             searchGroupBox.Name = "searchGroupBox";
-            searchGroupBox.Size = new Size(718, 137);
+            searchGroupBox.Size = new Size(759, 137);
             searchGroupBox.TabIndex = 3;
             searchGroupBox.TabStop = false;
             searchGroupBox.Text = "Pesquisa";
@@ -436,14 +438,33 @@ namespace StarFoxZeroLocalizationTool
             replaceAllButton.UseVisualStyleBackColor = false;
             replaceAllButton.Click += ReplaceAllButton_Click;
             // 
+            // validateCharsetButton
+            // 
+            validateCharsetButton.BackColor = Color.FromArgb(37, 99, 235);
+            validateCharsetButton.Cursor = Cursors.Hand;
+            validateCharsetButton.FlatAppearance.BorderSize = 0;
+            validateCharsetButton.FlatStyle = FlatStyle.Flat;
+            validateCharsetButton.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
+            validateCharsetButton.ForeColor = Color.White;
+            validateCharsetButton.Location = new Point(482, 101);
+            validateCharsetButton.Name = "validateCharsetButton";
+            validateCharsetButton.Size = new Size(152, 27);
+            validateCharsetButton.TabIndex = 11;
+            validateCharsetButton.Text = "Verificar charset/LF";
+            validateCharsetButton.UseVisualStyleBackColor = false;
+            validateCharsetButton.Click += ValidateCharsetButton_Click;
+            // 
             // remapGroupBox
             // 
             remapGroupBox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            remapGroupBox.Controls.Add(remapTexturePreviewPictureBox);
             remapGroupBox.Controls.Add(remapSourceLabel);
             remapGroupBox.Controls.Add(remapSourceComboBox);
+            remapGroupBox.Controls.Add(searchGroupBox);
             remapGroupBox.Controls.Add(remapTargetLabel);
             remapGroupBox.Controls.Add(remapTargetTextBox);
             remapGroupBox.Controls.Add(applyCharRemapButton);
+            remapGroupBox.Controls.Add(remapHelperLabel);
             remapGroupBox.Controls.Add(remapLanguageCurrentLabel);
             remapGroupBox.Controls.Add(remapLanguageCurrentValueLabel);
             remapGroupBox.Controls.Add(remapLanguageTargetLabel);
@@ -480,25 +501,34 @@ namespace StarFoxZeroLocalizationTool
             remapGroupBox.Controls.Add(selectionBottomDecreaseButton);
             remapGroupBox.Controls.Add(selectionBottomIncreaseButton);
             remapGroupBox.Controls.Add(resetSelectionToGlyphButton);
-            remapGroupBox.Controls.Add(remapTexturePreviewPictureBox);
             remapGroupBox.Controls.Add(remapGlyphZoomPictureBox);
             remapGroupBox.Controls.Add(remapTexturePreviewLabel);
-            remapGroupBox.Controls.Add(remapHelperLabel);
             remapGroupBox.Font = new Font("Segoe UI Semibold", 9.75F, FontStyle.Bold);
             remapGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
             remapGroupBox.Location = new Point(14, 114);
             remapGroupBox.Name = "remapGroupBox";
-            remapGroupBox.Size = new Size(1186, 425);
+            remapGroupBox.Size = new Size(1184, 565);
             remapGroupBox.TabIndex = 4;
             remapGroupBox.TabStop = false;
             remapGroupBox.Text = "Remapeamento de caractere";
+            // 
+            // remapTexturePreviewPictureBox
+            // 
+            remapTexturePreviewPictureBox.BackColor = Color.FromArgb(248, 250, 252);
+            remapTexturePreviewPictureBox.BorderStyle = BorderStyle.FixedSingle;
+            remapTexturePreviewPictureBox.Location = new Point(15, 124);
+            remapTexturePreviewPictureBox.Name = "remapTexturePreviewPictureBox";
+            remapTexturePreviewPictureBox.Size = new Size(348, 399);
+            remapTexturePreviewPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
+            remapTexturePreviewPictureBox.TabIndex = 36;
+            remapTexturePreviewPictureBox.TabStop = false;
             // 
             // remapSourceLabel
             // 
             remapSourceLabel.AutoSize = true;
             remapSourceLabel.Font = new Font("Segoe UI", 9.5F);
             remapSourceLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            remapSourceLabel.Location = new Point(12, 28);
+            remapSourceLabel.Location = new Point(645, 27);
             remapSourceLabel.Name = "remapSourceLabel";
             remapSourceLabel.Size = new Size(64, 17);
             remapSourceLabel.TabIndex = 0;
@@ -509,9 +539,9 @@ namespace StarFoxZeroLocalizationTool
             remapSourceComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
             remapSourceComboBox.Font = new Font("Segoe UI", 10F);
             remapSourceComboBox.FormattingEnabled = true;
-            remapSourceComboBox.Location = new Point(80, 24);
+            remapSourceComboBox.Location = new Point(713, 24);
             remapSourceComboBox.Name = "remapSourceComboBox";
-            remapSourceComboBox.Size = new Size(373, 25);
+            remapSourceComboBox.Size = new Size(450, 25);
             remapSourceComboBox.TabIndex = 1;
             remapSourceComboBox.SelectedIndexChanged += RemapSourceComboBox_SelectedIndexChanged;
             // 
@@ -520,7 +550,7 @@ namespace StarFoxZeroLocalizationTool
             remapTargetLabel.AutoSize = true;
             remapTargetLabel.Font = new Font("Segoe UI", 9.5F);
             remapTargetLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            remapTargetLabel.Location = new Point(459, 28);
+            remapTargetLabel.Location = new Point(645, 73);
             remapTargetLabel.Name = "remapTargetLabel";
             remapTargetLabel.Size = new Size(98, 17);
             remapTargetLabel.TabIndex = 2;
@@ -530,11 +560,11 @@ namespace StarFoxZeroLocalizationTool
             // 
             remapTargetTextBox.BorderStyle = BorderStyle.FixedSingle;
             remapTargetTextBox.Font = new Font("Segoe UI", 10F);
-            remapTargetTextBox.Location = new Point(562, 24);
+            remapTargetTextBox.Location = new Point(748, 69);
             remapTargetTextBox.MaxLength = 2;
             remapTargetTextBox.Name = "remapTargetTextBox";
             remapTargetTextBox.PlaceholderText = "Ex.: ã";
-            remapTargetTextBox.Size = new Size(62, 25);
+            remapTargetTextBox.Size = new Size(59, 25);
             remapTargetTextBox.TabIndex = 3;
             remapTargetTextBox.TextChanged += RemapTargetTextBox_TextChanged;
             // 
@@ -547,20 +577,31 @@ namespace StarFoxZeroLocalizationTool
             applyCharRemapButton.FlatStyle = FlatStyle.Flat;
             applyCharRemapButton.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             applyCharRemapButton.ForeColor = Color.White;
-            applyCharRemapButton.Location = new Point(635, 24);
+            applyCharRemapButton.Location = new Point(821, 69);
             applyCharRemapButton.Name = "applyCharRemapButton";
-            applyCharRemapButton.Size = new Size(66, 27);
+            applyCharRemapButton.Size = new Size(59, 27);
             applyCharRemapButton.TabIndex = 4;
             applyCharRemapButton.Text = "Aplicar";
             applyCharRemapButton.UseVisualStyleBackColor = false;
             applyCharRemapButton.Click += ApplyCharRemapButton_Click;
+            // 
+            // remapHelperLabel
+            // 
+            remapHelperLabel.AutoSize = true;
+            remapHelperLabel.Font = new Font("Segoe UI", 9F);
+            remapHelperLabel.ForeColor = Color.FromArgb(71, 85, 105);
+            remapHelperLabel.Location = new Point(15, 535);
+            remapHelperLabel.Name = "remapHelperLabel";
+            remapHelperLabel.Size = new Size(417, 15);
+            remapHelperLabel.TabIndex = 39;
+            remapHelperLabel.Text = "Troque um caractere existente ou cadastre um novo glifo usando a atlas atual.";
             // 
             // remapLanguageCurrentLabel
             // 
             remapLanguageCurrentLabel.AutoSize = true;
             remapLanguageCurrentLabel.Font = new Font("Segoe UI", 9.5F);
             remapLanguageCurrentLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            remapLanguageCurrentLabel.Location = new Point(12, 61);
+            remapLanguageCurrentLabel.Location = new Point(893, 106);
             remapLanguageCurrentLabel.Name = "remapLanguageCurrentLabel";
             remapLanguageCurrentLabel.Size = new Size(127, 17);
             remapLanguageCurrentLabel.TabIndex = 5;
@@ -571,7 +612,7 @@ namespace StarFoxZeroLocalizationTool
             remapLanguageCurrentValueLabel.AutoSize = true;
             remapLanguageCurrentValueLabel.Font = new Font("Segoe UI", 9F);
             remapLanguageCurrentValueLabel.ForeColor = Color.FromArgb(37, 99, 235);
-            remapLanguageCurrentValueLabel.Location = new Point(143, 62);
+            remapLanguageCurrentValueLabel.Location = new Point(1024, 107);
             remapLanguageCurrentValueLabel.Name = "remapLanguageCurrentValueLabel";
             remapLanguageCurrentValueLabel.Size = new Size(86, 15);
             remapLanguageCurrentValueLabel.TabIndex = 6;
@@ -582,7 +623,7 @@ namespace StarFoxZeroLocalizationTool
             remapLanguageTargetLabel.AutoSize = true;
             remapLanguageTargetLabel.Font = new Font("Segoe UI", 9.5F);
             remapLanguageTargetLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            remapLanguageTargetLabel.Location = new Point(707, 28);
+            remapLanguageTargetLabel.Location = new Point(893, 73);
             remapLanguageTargetLabel.Name = "remapLanguageTargetLabel";
             remapLanguageTargetLabel.Size = new Size(131, 17);
             remapLanguageTargetLabel.TabIndex = 7;
@@ -592,10 +633,10 @@ namespace StarFoxZeroLocalizationTool
             // 
             remapLanguageTargetTextBox.BorderStyle = BorderStyle.FixedSingle;
             remapLanguageTargetTextBox.Font = new Font("Segoe UI", 10F);
-            remapLanguageTargetTextBox.Location = new Point(844, 26);
+            remapLanguageTargetTextBox.Location = new Point(1030, 71);
             remapLanguageTargetTextBox.Name = "remapLanguageTargetTextBox";
             remapLanguageTargetTextBox.PlaceholderText = "Ex.: 12 ou 0x000C";
-            remapLanguageTargetTextBox.Size = new Size(56, 25);
+            remapLanguageTargetTextBox.Size = new Size(59, 25);
             remapLanguageTargetTextBox.TabIndex = 8;
             remapLanguageTargetTextBox.TextChanged += RemapLanguageTargetTextBox_TextChanged;
             // 
@@ -608,9 +649,9 @@ namespace StarFoxZeroLocalizationTool
             applyLanguageFlagsButton.FlatStyle = FlatStyle.Flat;
             applyLanguageFlagsButton.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             applyLanguageFlagsButton.ForeColor = Color.White;
-            applyLanguageFlagsButton.Location = new Point(913, 24);
+            applyLanguageFlagsButton.Location = new Point(1099, 69);
             applyLanguageFlagsButton.Name = "applyLanguageFlagsButton";
-            applyLanguageFlagsButton.Size = new Size(66, 27);
+            applyLanguageFlagsButton.Size = new Size(59, 27);
             applyLanguageFlagsButton.TabIndex = 9;
             applyLanguageFlagsButton.Text = "Aplicar";
             applyLanguageFlagsButton.UseVisualStyleBackColor = false;
@@ -621,7 +662,7 @@ namespace StarFoxZeroLocalizationTool
             remapVariantDetailsLabel.AutoSize = true;
             remapVariantDetailsLabel.Font = new Font("Segoe UI", 9F);
             remapVariantDetailsLabel.ForeColor = Color.FromArgb(37, 99, 235);
-            remapVariantDetailsLabel.Location = new Point(12, 90);
+            remapVariantDetailsLabel.Location = new Point(675, 124);
             remapVariantDetailsLabel.Name = "remapVariantDetailsLabel";
             remapVariantDetailsLabel.Size = new Size(268, 15);
             remapVariantDetailsLabel.TabIndex = 10;
@@ -632,7 +673,7 @@ namespace StarFoxZeroLocalizationTool
             currentGlyphHeaderLabel.AutoSize = true;
             currentGlyphHeaderLabel.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
             currentGlyphHeaderLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            currentGlyphHeaderLabel.Location = new Point(558, 116);
+            currentGlyphHeaderLabel.Location = new Point(399, 180);
             currentGlyphHeaderLabel.Name = "currentGlyphHeaderLabel";
             currentGlyphHeaderLabel.Size = new Size(225, 17);
             currentGlyphHeaderLabel.TabIndex = 11;
@@ -643,7 +684,7 @@ namespace StarFoxZeroLocalizationTool
             currentGlyphHintLabel.AutoSize = true;
             currentGlyphHintLabel.Font = new Font("Segoe UI", 8.5F);
             currentGlyphHintLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            currentGlyphHintLabel.Location = new Point(558, 136);
+            currentGlyphHintLabel.Location = new Point(399, 200);
             currentGlyphHintLabel.Name = "currentGlyphHintLabel";
             currentGlyphHintLabel.Size = new Size(311, 15);
             currentGlyphHintLabel.TabIndex = 12;
@@ -654,7 +695,7 @@ namespace StarFoxZeroLocalizationTool
             newCharacterHeaderLabel.AutoSize = true;
             newCharacterHeaderLabel.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
             newCharacterHeaderLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            newCharacterHeaderLabel.Location = new Point(12, 116);
+            newCharacterHeaderLabel.Location = new Point(12, 32);
             newCharacterHeaderLabel.Name = "newCharacterHeaderLabel";
             newCharacterHeaderLabel.Size = new Size(377, 17);
             newCharacterHeaderLabel.TabIndex = 13;
@@ -665,7 +706,7 @@ namespace StarFoxZeroLocalizationTool
             newCharacterHintLabel.AutoSize = true;
             newCharacterHintLabel.Font = new Font("Segoe UI", 8.5F);
             newCharacterHintLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            newCharacterHintLabel.Location = new Point(12, 136);
+            newCharacterHintLabel.Location = new Point(12, 52);
             newCharacterHintLabel.Name = "newCharacterHintLabel";
             newCharacterHintLabel.Size = new Size(354, 15);
             newCharacterHintLabel.TabIndex = 14;
@@ -676,7 +717,7 @@ namespace StarFoxZeroLocalizationTool
             newCharacterLabel.AutoSize = true;
             newCharacterLabel.Font = new Font("Segoe UI", 9.5F);
             newCharacterLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            newCharacterLabel.Location = new Point(12, 160);
+            newCharacterLabel.Location = new Point(12, 76);
             newCharacterLabel.Name = "newCharacterLabel";
             newCharacterLabel.Size = new Size(98, 17);
             newCharacterLabel.TabIndex = 15;
@@ -686,7 +727,7 @@ namespace StarFoxZeroLocalizationTool
             // 
             newCharacterTextBox.BorderStyle = BorderStyle.FixedSingle;
             newCharacterTextBox.Font = new Font("Segoe UI", 10F);
-            newCharacterTextBox.Location = new Point(116, 157);
+            newCharacterTextBox.Location = new Point(116, 73);
             newCharacterTextBox.MaxLength = 2;
             newCharacterTextBox.Name = "newCharacterTextBox";
             newCharacterTextBox.PlaceholderText = "Ex.: ã";
@@ -699,7 +740,7 @@ namespace StarFoxZeroLocalizationTool
             newCharacterLanguageLabel.AutoSize = true;
             newCharacterLanguageLabel.Font = new Font("Segoe UI", 9.5F);
             newCharacterLanguageLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            newCharacterLanguageLabel.Location = new Point(180, 160);
+            newCharacterLanguageLabel.Location = new Point(180, 76);
             newCharacterLanguageLabel.Name = "newCharacterLanguageLabel";
             newCharacterLanguageLabel.Size = new Size(95, 17);
             newCharacterLanguageLabel.TabIndex = 17;
@@ -709,7 +750,7 @@ namespace StarFoxZeroLocalizationTool
             // 
             newCharacterLanguageTextBox.BorderStyle = BorderStyle.FixedSingle;
             newCharacterLanguageTextBox.Font = new Font("Segoe UI", 10F);
-            newCharacterLanguageTextBox.Location = new Point(281, 157);
+            newCharacterLanguageTextBox.Location = new Point(281, 73);
             newCharacterLanguageTextBox.Name = "newCharacterLanguageTextBox";
             newCharacterLanguageTextBox.PlaceholderText = "Ex.: 12";
             newCharacterLanguageTextBox.Size = new Size(57, 25);
@@ -724,7 +765,7 @@ namespace StarFoxZeroLocalizationTool
             selectNewGlyphButton.FlatStyle = FlatStyle.Flat;
             selectNewGlyphButton.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             selectNewGlyphButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectNewGlyphButton.Location = new Point(399, 157);
+            selectNewGlyphButton.Location = new Point(399, 73);
             selectNewGlyphButton.Name = "selectNewGlyphButton";
             selectNewGlyphButton.Size = new Size(119, 27);
             selectNewGlyphButton.TabIndex = 19;
@@ -741,7 +782,7 @@ namespace StarFoxZeroLocalizationTool
             createNewCharacterButton.FlatStyle = FlatStyle.Flat;
             createNewCharacterButton.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             createNewCharacterButton.ForeColor = Color.White;
-            createNewCharacterButton.Location = new Point(399, 123);
+            createNewCharacterButton.Location = new Point(399, 39);
             createNewCharacterButton.Name = "createNewCharacterButton";
             createNewCharacterButton.Size = new Size(119, 27);
             createNewCharacterButton.TabIndex = 20;
@@ -758,7 +799,7 @@ namespace StarFoxZeroLocalizationTool
             updateSelectedGlyphButton.FlatStyle = FlatStyle.Flat;
             updateSelectedGlyphButton.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             updateSelectedGlyphButton.ForeColor = Color.White;
-            updateSelectedGlyphButton.Location = new Point(558, 156);
+            updateSelectedGlyphButton.Location = new Point(399, 220);
             updateSelectedGlyphButton.Name = "updateSelectedGlyphButton";
             updateSelectedGlyphButton.Size = new Size(121, 27);
             updateSelectedGlyphButton.TabIndex = 21;
@@ -774,7 +815,7 @@ namespace StarFoxZeroLocalizationTool
             removeCharacterButton.FlatStyle = FlatStyle.Flat;
             removeCharacterButton.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             removeCharacterButton.ForeColor = Color.White;
-            removeCharacterButton.Location = new Point(685, 155);
+            removeCharacterButton.Location = new Point(526, 219);
             removeCharacterButton.Name = "removeCharacterButton";
             removeCharacterButton.Size = new Size(118, 27);
             removeCharacterButton.TabIndex = 22;
@@ -785,7 +826,7 @@ namespace StarFoxZeroLocalizationTool
             // remapSectionDividerPanel
             // 
             remapSectionDividerPanel.BackColor = Color.FromArgb(226, 232, 240);
-            remapSectionDividerPanel.Location = new Point(536, 116);
+            remapSectionDividerPanel.Location = new Point(638, 32);
             remapSectionDividerPanel.Name = "remapSectionDividerPanel";
             remapSectionDividerPanel.Size = new Size(1, 74);
             remapSectionDividerPanel.TabIndex = 23;
@@ -795,7 +836,7 @@ namespace StarFoxZeroLocalizationTool
             newCharacterBaseInfoLabel.AutoSize = true;
             newCharacterBaseInfoLabel.Font = new Font("Segoe UI", 9F);
             newCharacterBaseInfoLabel.ForeColor = Color.FromArgb(37, 99, 235);
-            newCharacterBaseInfoLabel.Location = new Point(12, 191);
+            newCharacterBaseInfoLabel.Location = new Point(12, 107);
             newCharacterBaseInfoLabel.Name = "newCharacterBaseInfoLabel";
             newCharacterBaseInfoLabel.Size = new Size(362, 15);
             newCharacterBaseInfoLabel.TabIndex = 24;
@@ -806,7 +847,7 @@ namespace StarFoxZeroLocalizationTool
             newCharacterSelectionLabel.AutoSize = true;
             newCharacterSelectionLabel.Font = new Font("Segoe UI", 9F);
             newCharacterSelectionLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            newCharacterSelectionLabel.Location = new Point(12, 208);
+            newCharacterSelectionLabel.Location = new Point(12, 124);
             newCharacterSelectionLabel.Name = "newCharacterSelectionLabel";
             newCharacterSelectionLabel.Size = new Size(388, 15);
             newCharacterSelectionLabel.TabIndex = 25;
@@ -817,7 +858,7 @@ namespace StarFoxZeroLocalizationTool
             selectionAdjustLabel.AutoSize = true;
             selectionAdjustLabel.Font = new Font("Segoe UI", 9F);
             selectionAdjustLabel.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionAdjustLabel.Location = new Point(716, 201);
+            selectionAdjustLabel.Location = new Point(748, 220);
             selectionAdjustLabel.Name = "selectionAdjustLabel";
             selectionAdjustLabel.Size = new Size(191, 15);
             selectionAdjustLabel.TabIndex = 26;
@@ -827,9 +868,9 @@ namespace StarFoxZeroLocalizationTool
             // 
             selectionAdjustStepTextBox.BorderStyle = BorderStyle.FixedSingle;
             selectionAdjustStepTextBox.Font = new Font("Segoe UI", 9F);
-            selectionAdjustStepTextBox.Location = new Point(558, 196);
+            selectionAdjustStepTextBox.Location = new Point(913, 395);
             selectionAdjustStepTextBox.Name = "selectionAdjustStepTextBox";
-            selectionAdjustStepTextBox.Size = new Size(46, 23);
+            selectionAdjustStepTextBox.Size = new Size(30, 23);
             selectionAdjustStepTextBox.TabIndex = 27;
             selectionAdjustStepTextBox.Text = "1";
             selectionAdjustStepTextBox.TextChanged += SelectionAdjustStepTextBox_TextChanged;
@@ -842,7 +883,7 @@ namespace StarFoxZeroLocalizationTool
             selectionWidthDecreaseButton.FlatStyle = FlatStyle.Flat;
             selectionWidthDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionWidthDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionWidthDecreaseButton.Location = new Point(400, 261);
+            selectionWidthDecreaseButton.Location = new Point(713, 272);
             selectionWidthDecreaseButton.Name = "selectionWidthDecreaseButton";
             selectionWidthDecreaseButton.Size = new Size(58, 24);
             selectionWidthDecreaseButton.TabIndex = 28;
@@ -859,7 +900,7 @@ namespace StarFoxZeroLocalizationTool
             selectionWidthIncreaseButton.FlatStyle = FlatStyle.Flat;
             selectionWidthIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionWidthIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionWidthIncreaseButton.Location = new Point(400, 239);
+            selectionWidthIncreaseButton.Location = new Point(713, 250);
             selectionWidthIncreaseButton.Name = "selectionWidthIncreaseButton";
             selectionWidthIncreaseButton.Size = new Size(58, 24);
             selectionWidthIncreaseButton.TabIndex = 29;
@@ -876,7 +917,7 @@ namespace StarFoxZeroLocalizationTool
             selectionHeightDecreaseButton.FlatStyle = FlatStyle.Flat;
             selectionHeightDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionHeightDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionHeightDecreaseButton.Location = new Point(618, 239);
+            selectionHeightDecreaseButton.Location = new Point(926, 272);
             selectionHeightDecreaseButton.Name = "selectionHeightDecreaseButton";
             selectionHeightDecreaseButton.Size = new Size(58, 24);
             selectionHeightDecreaseButton.TabIndex = 30;
@@ -893,7 +934,7 @@ namespace StarFoxZeroLocalizationTool
             selectionHeightIncreaseButton.FlatStyle = FlatStyle.Flat;
             selectionHeightIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionHeightIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionHeightIncreaseButton.Location = new Point(618, 265);
+            selectionHeightIncreaseButton.Location = new Point(926, 250);
             selectionHeightIncreaseButton.Name = "selectionHeightIncreaseButton";
             selectionHeightIncreaseButton.Size = new Size(58, 24);
             selectionHeightIncreaseButton.TabIndex = 31;
@@ -910,7 +951,7 @@ namespace StarFoxZeroLocalizationTool
             selectionLeftDecreaseButton.FlatStyle = FlatStyle.Flat;
             selectionLeftDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionLeftDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionLeftDecreaseButton.Location = new Point(400, 336);
+            selectionLeftDecreaseButton.Location = new Point(713, 347);
             selectionLeftDecreaseButton.Name = "selectionLeftDecreaseButton";
             selectionLeftDecreaseButton.Size = new Size(58, 24);
             selectionLeftDecreaseButton.TabIndex = 32;
@@ -927,7 +968,7 @@ namespace StarFoxZeroLocalizationTool
             selectionLeftIncreaseButton.FlatStyle = FlatStyle.Flat;
             selectionLeftIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionLeftIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionLeftIncreaseButton.Location = new Point(399, 308);
+            selectionLeftIncreaseButton.Location = new Point(712, 319);
             selectionLeftIncreaseButton.Name = "selectionLeftIncreaseButton";
             selectionLeftIncreaseButton.Size = new Size(58, 24);
             selectionLeftIncreaseButton.TabIndex = 33;
@@ -944,7 +985,7 @@ namespace StarFoxZeroLocalizationTool
             selectionRightDecreaseButton.FlatStyle = FlatStyle.Flat;
             selectionRightDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionRightDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionRightDecreaseButton.Location = new Point(618, 336);
+            selectionRightDecreaseButton.Location = new Point(931, 347);
             selectionRightDecreaseButton.Name = "selectionRightDecreaseButton";
             selectionRightDecreaseButton.Size = new Size(58, 24);
             selectionRightDecreaseButton.TabIndex = 34;
@@ -961,7 +1002,7 @@ namespace StarFoxZeroLocalizationTool
             selectionRightIncreaseButton.FlatStyle = FlatStyle.Flat;
             selectionRightIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionRightIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionRightIncreaseButton.Location = new Point(618, 308);
+            selectionRightIncreaseButton.Location = new Point(931, 319);
             selectionRightIncreaseButton.Name = "selectionRightIncreaseButton";
             selectionRightIncreaseButton.Size = new Size(58, 24);
             selectionRightIncreaseButton.TabIndex = 35;
@@ -978,7 +1019,7 @@ namespace StarFoxZeroLocalizationTool
             selectionTopDecreaseButton.FlatStyle = FlatStyle.Flat;
             selectionTopDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionTopDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionTopDecreaseButton.Location = new Point(478, 227);
+            selectionTopDecreaseButton.Location = new Point(791, 238);
             selectionTopDecreaseButton.Name = "selectionTopDecreaseButton";
             selectionTopDecreaseButton.Size = new Size(56, 24);
             selectionTopDecreaseButton.TabIndex = 36;
@@ -995,7 +1036,7 @@ namespace StarFoxZeroLocalizationTool
             selectionTopIncreaseButton.FlatStyle = FlatStyle.Flat;
             selectionTopIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionTopIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionTopIncreaseButton.Location = new Point(536, 227);
+            selectionTopIncreaseButton.Location = new Point(849, 238);
             selectionTopIncreaseButton.Name = "selectionTopIncreaseButton";
             selectionTopIncreaseButton.Size = new Size(56, 24);
             selectionTopIncreaseButton.TabIndex = 37;
@@ -1012,7 +1053,7 @@ namespace StarFoxZeroLocalizationTool
             selectionBottomDecreaseButton.FlatStyle = FlatStyle.Flat;
             selectionBottomDecreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionBottomDecreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionBottomDecreaseButton.Location = new Point(476, 384);
+            selectionBottomDecreaseButton.Location = new Point(789, 395);
             selectionBottomDecreaseButton.Name = "selectionBottomDecreaseButton";
             selectionBottomDecreaseButton.Size = new Size(58, 24);
             selectionBottomDecreaseButton.TabIndex = 38;
@@ -1029,7 +1070,7 @@ namespace StarFoxZeroLocalizationTool
             selectionBottomIncreaseButton.FlatStyle = FlatStyle.Flat;
             selectionBottomIncreaseButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             selectionBottomIncreaseButton.ForeColor = Color.FromArgb(15, 23, 42);
-            selectionBottomIncreaseButton.Location = new Point(536, 384);
+            selectionBottomIncreaseButton.Location = new Point(849, 395);
             selectionBottomIncreaseButton.Name = "selectionBottomIncreaseButton";
             selectionBottomIncreaseButton.Size = new Size(58, 24);
             selectionBottomIncreaseButton.TabIndex = 39;
@@ -1046,7 +1087,7 @@ namespace StarFoxZeroLocalizationTool
             resetSelectionToGlyphButton.FlatStyle = FlatStyle.Flat;
             resetSelectionToGlyphButton.Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold);
             resetSelectionToGlyphButton.ForeColor = Color.FromArgb(15, 23, 42);
-            resetSelectionToGlyphButton.Location = new Point(618, 196);
+            resetSelectionToGlyphButton.Location = new Point(949, 395);
             resetSelectionToGlyphButton.Name = "resetSelectionToGlyphButton";
             resetSelectionToGlyphButton.Size = new Size(92, 24);
             resetSelectionToGlyphButton.TabIndex = 40;
@@ -1054,22 +1095,11 @@ namespace StarFoxZeroLocalizationTool
             resetSelectionToGlyphButton.UseVisualStyleBackColor = false;
             resetSelectionToGlyphButton.Click += ResetSelectionToGlyphButton_Click;
             // 
-            // remapTexturePreviewPictureBox
-            // 
-            remapTexturePreviewPictureBox.BackColor = Color.FromArgb(248, 250, 252);
-            remapTexturePreviewPictureBox.BorderStyle = BorderStyle.FixedSingle;
-            remapTexturePreviewPictureBox.Location = new Point(12, 227);
-            remapTexturePreviewPictureBox.Name = "remapTexturePreviewPictureBox";
-            remapTexturePreviewPictureBox.Size = new Size(348, 165);
-            remapTexturePreviewPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
-            remapTexturePreviewPictureBox.TabIndex = 36;
-            remapTexturePreviewPictureBox.TabStop = false;
-            // 
             // remapGlyphZoomPictureBox
             // 
             remapGlyphZoomPictureBox.BackColor = Color.FromArgb(248, 250, 252);
             remapGlyphZoomPictureBox.BorderStyle = BorderStyle.FixedSingle;
-            remapGlyphZoomPictureBox.Location = new Point(463, 254);
+            remapGlyphZoomPictureBox.Location = new Point(776, 265);
             remapGlyphZoomPictureBox.Name = "remapGlyphZoomPictureBox";
             remapGlyphZoomPictureBox.Size = new Size(144, 124);
             remapGlyphZoomPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
@@ -1080,22 +1110,11 @@ namespace StarFoxZeroLocalizationTool
             // 
             remapTexturePreviewLabel.Font = new Font("Segoe UI", 9F);
             remapTexturePreviewLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            remapTexturePreviewLabel.Location = new Point(698, 227);
+            remapTexturePreviewLabel.Location = new Point(369, 272);
             remapTexturePreviewLabel.Name = "remapTexturePreviewLabel";
-            remapTexturePreviewLabel.Size = new Size(361, 165);
+            remapTexturePreviewLabel.Size = new Size(310, 119);
             remapTexturePreviewLabel.TabIndex = 41;
             remapTexturePreviewLabel.Text = "A posicao da letra na textura aparecera aqui.";
-            // 
-            // remapHelperLabel
-            // 
-            remapHelperLabel.AutoSize = true;
-            remapHelperLabel.Font = new Font("Segoe UI", 9F);
-            remapHelperLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            remapHelperLabel.Location = new Point(12, 397);
-            remapHelperLabel.Name = "remapHelperLabel";
-            remapHelperLabel.Size = new Size(417, 15);
-            remapHelperLabel.TabIndex = 39;
-            remapHelperLabel.Text = "Troque um caractere existente ou cadastre um novo glifo usando a atlas atual.";
             // 
             // navigationGroupBox
             // 
@@ -1106,7 +1125,7 @@ namespace StarFoxZeroLocalizationTool
             navigationGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
             navigationGroupBox.Location = new Point(14, 685);
             navigationGroupBox.Name = "navigationGroupBox";
-            navigationGroupBox.Size = new Size(419, 258);
+            navigationGroupBox.Size = new Size(419, 302);
             navigationGroupBox.TabIndex = 5;
             navigationGroupBox.TabStop = false;
             navigationGroupBox.Text = "Navegacao";
@@ -1131,7 +1150,7 @@ namespace StarFoxZeroLocalizationTool
             eventTreeView.HideSelection = false;
             eventTreeView.Location = new Point(12, 50);
             eventTreeView.Name = "eventTreeView";
-            eventTreeView.Size = new Size(395, 202);
+            eventTreeView.Size = new Size(395, 246);
             eventTreeView.TabIndex = 1;
             eventTreeView.AfterSelect += EventTreeView_AfterSelect;
             // 
@@ -1149,7 +1168,7 @@ namespace StarFoxZeroLocalizationTool
             editorGroupBox.ForeColor = Color.FromArgb(15, 23, 42);
             editorGroupBox.Location = new Point(439, 685);
             editorGroupBox.Name = "editorGroupBox";
-            editorGroupBox.Size = new Size(759, 258);
+            editorGroupBox.Size = new Size(759, 302);
             editorGroupBox.TabIndex = 6;
             editorGroupBox.TabStop = false;
             editorGroupBox.Text = "Edicao";
@@ -1181,7 +1200,7 @@ namespace StarFoxZeroLocalizationTool
             editorHelperLabel.AutoSize = true;
             editorHelperLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             editorHelperLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            editorHelperLabel.Location = new Point(12, 48);
+            editorHelperLabel.Location = new Point(129, 30);
             editorHelperLabel.Name = "editorHelperLabel";
             editorHelperLabel.Size = new Size(293, 15);
             editorHelperLabel.TabIndex = 2;
@@ -1192,7 +1211,7 @@ namespace StarFoxZeroLocalizationTool
             selectedEntryLabel.AutoSize = true;
             selectedEntryLabel.Font = new Font("Segoe UI", 9F);
             selectedEntryLabel.ForeColor = Color.FromArgb(71, 85, 105);
-            selectedEntryLabel.Location = new Point(12, 69);
+            selectedEntryLabel.Location = new Point(12, 50);
             selectedEntryLabel.Name = "selectedEntryLabel";
             selectedEntryLabel.Size = new Size(158, 15);
             selectedEntryLabel.TabIndex = 3;
@@ -1204,7 +1223,7 @@ namespace StarFoxZeroLocalizationTool
             editorPreviewInfoLabel.AutoEllipsis = true;
             editorPreviewInfoLabel.Font = new Font("Segoe UI", 8.75F);
             editorPreviewInfoLabel.ForeColor = Color.FromArgb(37, 99, 235);
-            editorPreviewInfoLabel.Location = new Point(12, 150);
+            editorPreviewInfoLabel.Location = new Point(12, 117);
             editorPreviewInfoLabel.Name = "editorPreviewInfoLabel";
             editorPreviewInfoLabel.Size = new Size(735, 18);
             editorPreviewInfoLabel.TabIndex = 5;
@@ -1215,9 +1234,9 @@ namespace StarFoxZeroLocalizationTool
             editorPreviewPictureBox.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             editorPreviewPictureBox.BackColor = Color.FromArgb(248, 250, 252);
             editorPreviewPictureBox.BorderStyle = BorderStyle.FixedSingle;
-            editorPreviewPictureBox.Location = new Point(12, 171);
+            editorPreviewPictureBox.Location = new Point(12, 138);
             editorPreviewPictureBox.Name = "editorPreviewPictureBox";
-            editorPreviewPictureBox.Size = new Size(735, 81);
+            editorPreviewPictureBox.Size = new Size(735, 158);
             editorPreviewPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
             editorPreviewPictureBox.TabIndex = 6;
             editorPreviewPictureBox.TabStop = false;
@@ -1231,11 +1250,11 @@ namespace StarFoxZeroLocalizationTool
             textTextBox.BorderStyle = BorderStyle.FixedSingle;
             textTextBox.Enabled = false;
             textTextBox.Font = new Font("Consolas", 11F);
-            textTextBox.Location = new Point(12, 92);
+            textTextBox.Location = new Point(12, 73);
             textTextBox.Multiline = true;
             textTextBox.Name = "textTextBox";
             textTextBox.ScrollBars = ScrollBars.Vertical;
-            textTextBox.Size = new Size(735, 58);
+            textTextBox.Size = new Size(735, 41);
             textTextBox.TabIndex = 4;
             textTextBox.TextChanged += TextTextBox_TextChanged;
             // 
@@ -1244,7 +1263,7 @@ namespace StarFoxZeroLocalizationTool
             statusStrip.BackColor = Color.White;
             statusStrip.ImageScalingSize = new Size(20, 20);
             statusStrip.Items.AddRange(new ToolStripItem[] { statusToolStripStatusLabel });
-            statusStrip.Location = new Point(0, 946);
+            statusStrip.Location = new Point(0, 990);
             statusStrip.Name = "statusStrip";
             statusStrip.Padding = new Padding(10, 0, 10, 0);
             statusStrip.Size = new Size(1214, 22);
@@ -1266,11 +1285,10 @@ namespace StarFoxZeroLocalizationTool
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(245, 247, 250);
-            ClientSize = new Size(1214, 968);
+            ClientSize = new Size(1214, 1012);
             Controls.Add(editorGroupBox);
             Controls.Add(navigationGroupBox);
             Controls.Add(remapGroupBox);
-            Controls.Add(searchGroupBox);
             Controls.Add(fileGroupBox);
             Controls.Add(headerPanel);
             Controls.Add(statusStrip);
@@ -1331,14 +1349,13 @@ namespace StarFoxZeroLocalizationTool
         private Button nextMatchButton = null!;
         private Button replaceCurrentButton = null!;
         private Button replaceAllButton = null!;
+        private Button validateCharsetButton = null!;
         private GroupBox remapGroupBox = null!;
         private Label remapSourceLabel = null!;
         private ComboBox remapSourceComboBox = null!;
         private Label remapTargetLabel = null!;
         private TextBox remapTargetTextBox = null!;
         private Button applyCharRemapButton = null!;
-        private Label remapLanguageCurrentLabel = null!;
-        private Label remapLanguageCurrentValueLabel = null!;
         private Label remapLanguageTargetLabel = null!;
         private TextBox remapLanguageTargetTextBox = null!;
         private Button applyLanguageFlagsButton = null!;
@@ -1391,6 +1408,8 @@ namespace StarFoxZeroLocalizationTool
         private StatusStrip statusStrip = null!;
         private ToolStripStatusLabel statusToolStripStatusLabel = null!;
         private ErrorProvider validationErrorProvider = null!;
+        private Label remapLanguageCurrentLabel;
+        private Label remapLanguageCurrentValueLabel;
     }
 }
 

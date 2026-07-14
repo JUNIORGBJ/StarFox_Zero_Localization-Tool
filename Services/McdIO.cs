@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 using StarFoxZeroLocalizationTool.Models;
 
 namespace StarFoxZeroLocalizationTool.Services
@@ -947,6 +948,134 @@ namespace StarFoxZeroLocalizationTool.Services
             public int PositionOffset { get; }
         }
 
+        public sealed class CharsetValidationResult
+        {
+            public int TotalStringsChecked { get; set; }
+
+            public int AffectedStringsCount { get; set; }
+
+            public int MissingCharacterCount { get; set; }
+
+            public int LanguageFlagsMismatchCount { get; set; }
+
+            public List<CharsetValidationIssue> Issues { get; } = new();
+        }
+
+        public sealed class CharsetValidationIssue
+        {
+            public CharsetValidationIssueKind Kind { get; set; }
+
+            public string EventId { get; set; } = string.Empty;
+
+            public string EventName { get; set; } = string.Empty;
+
+            public int EventIndex { get; set; }
+
+            public int ParagraphIndex { get; set; }
+
+            public int StringIndex { get; set; }
+
+            public int ParagraphLanguageFlags { get; set; }
+
+            public string Character { get; set; } = string.Empty;
+
+            public string StringText { get; set; } = string.Empty;
+
+            public string AvailableLanguageFlagsSummary { get; set; } = string.Empty;
+        }
+
+        public enum CharsetValidationIssueKind
+        {
+            MissingCharacter,
+            MissingLanguageFlagsVariant
+        }
+
+        public static CharsetValidationResult ValidateCharsetCoverage(McdFile mcd)
+        {
+            if (mcd == null)
+            {
+                throw new ArgumentNullException(nameof(mcd));
+            }
+
+            var result = new CharsetValidationResult();
+            var affectedStrings = new HashSet<string>(StringComparer.Ordinal);
+
+            for (var eventIndex = 0; eventIndex < mcd.Events.Count; eventIndex++)
+            {
+                var ev = mcd.Events[eventIndex];
+                var eventName = mcd.UsedEvents.FirstOrDefault(x => x.EventID == ev.EventID)?.Name ?? $"Evento {ev.Id}";
+
+                for (var paragraphIndex = 0; paragraphIndex < ev.Paragraphs.Count; paragraphIndex++)
+                {
+                    var paragraph = ev.Paragraphs[paragraphIndex];
+
+                    for (var stringIndex = 0; stringIndex < paragraph.Strings.Count; stringIndex++)
+                    {
+                        var str = paragraph.Strings[stringIndex];
+                        result.TotalStringsChecked++;
+
+                        var checkedCharacters = new HashSet<string>(StringComparer.Ordinal);
+                        foreach (var character in EnumerateValidationCharacters(str.Text))
+                        {
+                            if (!checkedCharacters.Add(character))
+                            {
+                                continue;
+                            }
+
+                            var candidates = mcd.Chars
+                                .Where(x => x.Char == character)
+                                .OrderBy(x => x.LanguageFlags)
+                                .ThenBy(x => x.Id)
+                                .ToList();
+
+                            if (candidates.Count == 0)
+                            {
+                                result.Issues.Add(new CharsetValidationIssue
+                                {
+                                    Kind = CharsetValidationIssueKind.MissingCharacter,
+                                    EventId = ev.EventID,
+                                    EventName = eventName,
+                                    EventIndex = eventIndex,
+                                    ParagraphIndex = paragraphIndex,
+                                    StringIndex = stringIndex,
+                                    ParagraphLanguageFlags = paragraph.LanguageFlags,
+                                    Character = character,
+                                    StringText = str.Text
+                                });
+                                result.MissingCharacterCount++;
+                                affectedStrings.Add($"{eventIndex}:{paragraphIndex}:{stringIndex}");
+                                continue;
+                            }
+
+                            if (candidates.Any(x => x.LanguageFlags == paragraph.LanguageFlags))
+                            {
+                                continue;
+                            }
+
+                            result.Issues.Add(new CharsetValidationIssue
+                            {
+                                Kind = CharsetValidationIssueKind.MissingLanguageFlagsVariant,
+                                EventId = ev.EventID,
+                                EventName = eventName,
+                                EventIndex = eventIndex,
+                                ParagraphIndex = paragraphIndex,
+                                StringIndex = stringIndex,
+                                ParagraphLanguageFlags = paragraph.LanguageFlags,
+                                Character = character,
+                                StringText = str.Text,
+                                AvailableLanguageFlagsSummary = BuildAvailableLanguageFlagsSummary(candidates)
+                            });
+                            result.LanguageFlagsMismatchCount++;
+                            affectedStrings.Add($"{eventIndex}:{paragraphIndex}:{stringIndex}");
+                        }
+                    }
+                }
+            }
+
+            result.AffectedStringsCount = affectedStrings.Count;
+            return result;
+        }
+
         public static List<string> ValidateTextCharacters(string text, List<CharEntry> charset)
         {
             var missing = new List<string>();
@@ -978,6 +1107,61 @@ namespace StarFoxZeroLocalizationTool.Services
                 i++;
             }
             return missing;
+        }
+
+        private static IEnumerable<string> EnumerateValidationCharacters(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                yield break;
+            }
+
+            var indexes = StringInfo.ParseCombiningCharacters(text);
+            for (var i = 0; i < indexes.Length; i++)
+            {
+                var start = indexes[i];
+                var length = i + 1 < indexes.Length
+                    ? indexes[i + 1] - start
+                    : text.Length - start;
+
+                var element = text.Substring(start, length);
+                if (element == " ")
+                {
+                    continue;
+                }
+
+                if (element == "{" &&
+                    (text.AsSpan(start).StartsWith("{button:".AsSpan(), StringComparison.Ordinal) ||
+                     text.AsSpan(start).StartsWith("{special:".AsSpan(), StringComparison.Ordinal)))
+                {
+                    var endIndex = text.IndexOf('}', start);
+                    if (endIndex >= start)
+                    {
+                        while (i + 1 < indexes.Length && indexes[i + 1] <= endIndex)
+                        {
+                            i++;
+                        }
+
+                        continue;
+                    }
+                }
+
+                yield return element;
+            }
+        }
+
+        private static string BuildAvailableLanguageFlagsSummary(List<CharEntry> entries)
+        {
+            return string.Join(
+                " | ",
+                entries
+                    .GroupBy(x => x.LanguageFlags)
+                    .OrderBy(group => group.Key)
+                    .Select(group =>
+                    {
+                        var ids = string.Join(", ", group.Select(x => x.Id.ToString(CultureInfo.InvariantCulture)));
+                        return $"LF {group.Key} (IDs {ids})";
+                    }));
         }
         #endregion
 
