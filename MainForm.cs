@@ -14,7 +14,7 @@ namespace StarFoxZeroLocalizationTool
 {
     public partial class MainForm : Form
     {
-        private static readonly Color InfoColor = Color.FromArgb(71, 85, 105);
+        private static readonly Color InfoColor = Color.FromArgb(133, 133, 133);
         private static readonly Color SuccessColor = Color.FromArgb(22, 163, 74);
         private static readonly Color WarningColor = Color.FromArgb(185, 28, 28);
 
@@ -30,6 +30,8 @@ namespace StarFoxZeroLocalizationTool
         private bool _isSelectingNewGlyph;
         private bool _newGlyphSelectionMode;
         private readonly Dictionary<string, Bitmap> _editorPreviewAtlasCache = new(StringComparer.OrdinalIgnoreCase);
+        private bool _draggingBaseline = false;
+        private int _baselineMouseY = 0;
         public MainForm()
         {
             InitializeComponent();
@@ -64,7 +66,9 @@ namespace StarFoxZeroLocalizationTool
 
         private void UpdateUiState(bool hasLoadedFile)
         {
+            closeButton.Enabled = hasLoadedFile;
             saveButton.Enabled = hasLoadedFile;
+            fecharMcdToolStripMenuItem.Enabled = hasLoadedFile;
             salvarToolStripMenuItem.Enabled = hasLoadedFile;
             exportarCsvToolStripMenuItem.Enabled = hasLoadedFile;
             importarCsvToolStripMenuItem.Enabled = hasLoadedFile;
@@ -174,6 +178,52 @@ namespace StarFoxZeroLocalizationTool
             }
         }
 
+        private void CloseMcdButton_Click(object? sender, EventArgs e)
+        {
+            if (_currentMcd == null)
+            {
+                return;
+            }
+
+            _currentMcd = null;
+            _currentFilePath = null;
+            validationErrorProvider.Clear();
+
+            ClearSearchResults();
+            ClearEditorPreviewAtlasCache();
+            ReplaceEditorPreviewImage(null);
+            ReplaceRemapTexturePreviewImage(null);
+            ReplaceRemapGlyphZoomImage(null);
+            ReplaceCurrentAtlasBitmap(null, null);
+            ResetNewGlyphSelection(keepSelectionMode: false);
+
+            eventTreeView.BeginUpdate();
+            eventTreeView.Nodes.Clear();
+            eventTreeView.EndUpdate();
+
+            remapSourceComboBox.BeginUpdate();
+            remapSourceComboBox.Items.Clear();
+            remapSourceComboBox.SelectedIndex = -1;
+            remapSourceComboBox.EndUpdate();
+
+            _suppressEditorEvents = true;
+            textTextBox.Tag = null;
+            textTextBox.Clear();
+            searchTextBox.Clear();
+            replaceTextBox.Clear();
+            remapTargetTextBox.Clear();
+            remapLanguageTargetTextBox.Clear();
+            newCharacterTextBox.Clear();
+            newCharacterLanguageTextBox.Clear();
+            _suppressEditorEvents = false;
+
+            selectionAdjustStepTextBox.Text = "1";
+            baselinePanel.Top = 127;
+
+            ConfigureInitialState();
+            statusToolStripStatusLabel.Text = "Arquivo MCD fechado.";
+        }
+
         private void ExportCsvButton_Click(object? sender, EventArgs e)
         {
             if (_currentMcd == null)
@@ -272,15 +322,9 @@ namespace StarFoxZeroLocalizationTool
             }
         }
 
-        private void OpenGtxDdsToolMenuItem_Click(object? sender, EventArgs e)
+        private void OpenDatArchiveToolMenuItem_Click(object? sender, EventArgs e)
         {
-            using var toolForm = new GtxDdsToolForm();
-            toolForm.ShowDialog(this);
-        }
-
-        private void OpenGtxRawEditorMenuItem_Click(object? sender, EventArgs e)
-        {
-            using var toolForm = new GtxRawTextureEditorForm();
+            using var toolForm = new DatArchiveToolForm();
             toolForm.ShowDialog(this);
         }
 
@@ -1116,8 +1160,6 @@ namespace StarFoxZeroLocalizationTool
             if (_currentMcd == null || !TryGetActiveStringContext(out var paragraph, out var entry))
             {
                 ReplaceEditorPreviewImage(null);
-                editorPreviewInfoLabel.Text = "Linha azul = baseline. Selecione uma string para visualizar a altura dos glifos.";
-                editorPreviewInfoLabel.ForeColor = InfoColor;
                 return;
             }
 
@@ -1126,14 +1168,10 @@ namespace StarFoxZeroLocalizationTool
                 var previewLetters = McdIO.BuildPreviewLetters(entry.Text, _currentMcd, entry.Letters, paragraph.LanguageFlags);
                 var previewBitmap = CreateEditorPreviewBitmap(paragraph, entry, previewLetters);
                 ReplaceEditorPreviewImage(previewBitmap);
-                editorPreviewInfoLabel.Text = BuildEditorPreviewInfoText(paragraph, entry);
-                editorPreviewInfoLabel.ForeColor = Color.FromArgb(37, 99, 235);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ReplaceEditorPreviewImage(CreateEditorPreviewFallbackBitmap(entry.Text));
-                editorPreviewInfoLabel.Text = $"Linha azul = baseline. Previa parcial: {ex.Message}";
-                editorPreviewInfoLabel.ForeColor = WarningColor;
             }
         }
 
@@ -1180,38 +1218,12 @@ namespace StarFoxZeroLocalizationTool
 
         private void UpdateRemapVariantDetails(CharRemapOption? option)
         {
-            if (_currentMcd == null || option == null)
-            {
-                remapVariantDetailsLabel.Text = "Detalhes da variante selecionada aparecerao aqui.";
-                remapVariantDetailsLabel.ForeColor = InfoColor;
-                return;
-            }
-
-            var entry = _currentMcd.Chars.FirstOrDefault(x => x.Id == option.CharId);
-            if (entry == null)
-            {
-                remapVariantDetailsLabel.Text = "Nao foi possivel localizar os detalhes da variante selecionada.";
-                remapVariantDetailsLabel.ForeColor = WarningColor;
-                return;
-            }
-
-            remapVariantDetailsLabel.Text =
-                $"Detalhes: ID {entry.Id} | CharCode U+{entry.CharCode:X4} | LanguageFlags {FormatLanguageFlagsReadable(entry.LanguageFlags)} | Index {entry.Index}";
-            remapVariantDetailsLabel.ForeColor = Color.FromArgb(37, 99, 235);
+            _ = option;
         }
 
         private void UpdateLanguageFlagsCurrentValue(CharRemapOption? option)
         {
-            if (_currentMcd == null || option == null)
-            {
-                remapLanguageCurrentValueLabel.Text = "Nenhum valor.";
-                return;
-            }
-
-            var entry = _currentMcd.Chars.FirstOrDefault(x => x.Id == option.CharId);
-            remapLanguageCurrentValueLabel.Text = entry == null
-                ? "Nao encontrado."
-                : FormatLanguageFlagsReadable(entry.LanguageFlags);
+            _ = option;
         }
 
         private bool ValidateLanguageFlagsInput(bool showError)
@@ -1657,11 +1669,10 @@ namespace StarFoxZeroLocalizationTool
 
                         remapTexturePreviewLabel.Text =
                             $"TextureID: {graph.TextureID}  |  Atlas real carregada{Environment.NewLine}" +
-                            $"Arquivo: {Path.GetFileName(atlasInfo!.WtaPath)} + {Path.GetFileName(atlasInfo.WtpPath)}{Environment.NewLine}" +
+                            $"Arquivos carregados: {Path.GetFileName(atlasInfo!.WtaPath)} + {Path.GetFileName(atlasInfo.WtpPath)}{Environment.NewLine}" +
                             $"Area UV: U {graph.U1:0.0000} -> {graph.U2:0.0000} | V {graph.V1:0.0000} -> {graph.V2:0.0000}{Environment.NewLine}" +
-                            $"Area em pixels: X {glyphRect.X}, Y {glyphRect.Y}, L {glyphRect.Width}, A {glyphRect.Height}{Environment.NewLine}" +
-                            $"Indice do graph no charset: {entry.Index}{Environment.NewLine}" +
-                            $"Esquerda: atlas completa com a letra marcada e a nova selecao em verde. Direita: zoom simples do glifo.";
+                            $"Area em pixels: X {glyphRect.X}, Y {glyphRect.Y},Tamanho: L {glyphRect.Width}, A {glyphRect.Height}{Environment.NewLine}" +
+                            $"Indice do graph no charset: {entry.Index}{Environment.NewLine}";
                     }
 
                     remapTexturePreviewLabel.ForeColor = InfoColor;
@@ -1700,7 +1711,6 @@ namespace StarFoxZeroLocalizationTool
         {
             if (_currentMcd == null || option == null)
             {
-                newCharacterBaseInfoLabel.Text = "Variante base/atual: selecione uma variante para editar ou herdar TextureID e metricas.";
                 return;
             }
 
@@ -1711,7 +1721,6 @@ namespace StarFoxZeroLocalizationTool
 
             if (entry == null || graph == null)
             {
-                newCharacterBaseInfoLabel.Text = "Variante base/atual: nao foi possivel localizar a variante selecionada.";
                 return;
             }
 
@@ -1719,10 +1728,6 @@ namespace StarFoxZeroLocalizationTool
             {
                 newCharacterLanguageTextBox.Text = entry.LanguageFlags.ToString(CultureInfo.InvariantCulture);
             }
-
-            newCharacterBaseInfoLabel.Text =
-                $"Variante base/atual: '{entry.Char}' | ID {entry.Id} | Graph {graph.Id} | TextureID {graph.TextureID} | " +
-                $"Tamanho {graph.Width:0.##} x {graph.Height:0.##} | Below {graph.BelowSpacing:0.##} | Horizontal {graph.HorizontalSpacing:0.##}";
         }
 
         private void UpdateNewCharacterSelectionInfo()
@@ -2194,6 +2199,37 @@ namespace StarFoxZeroLocalizationTool
             editorPreviewPictureBox.Image = image;
             oldImage?.Dispose();
         }
+
+        private void baselinePanel_MouseDown(object? sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                _draggingBaseline = true;
+                _baselineMouseY = e.Y;
+                baselinePanel.Cursor = Cursors.SizeNS;
+            }
+        }
+
+        private void baselinePanel_MouseMove(object? sender, MouseEventArgs e)
+        {
+            if (_draggingBaseline)
+            {
+                int newY = baselinePanel.Top + e.Y - _baselineMouseY;
+                // Constrain within the PictureBox
+                if (newY < 0)
+                    newY = 0;
+                if (newY > editorPreviewPictureBox.Height - baselinePanel.Height)
+                    newY = editorPreviewPictureBox.Height - baselinePanel.Height;
+                baselinePanel.Top = newY;
+            }
+        }
+
+        private void baselinePanel_MouseUp(object? sender, MouseEventArgs e)
+        {
+            _draggingBaseline = false;
+            baselinePanel.Cursor = Cursors.Default;
+        }
+
 
         private void MainForm_FormClosed(object? sender, FormClosedEventArgs e)
         {
