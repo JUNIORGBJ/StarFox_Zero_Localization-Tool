@@ -100,12 +100,9 @@ A ferramenta auxiliar de arquivos DAT permite:
 7. Salve o novo `.mcd`
 8. Se estiver trabalhando com pacotes do jogo, use a ferramenta de `.dat` para extrair ou reempacotar
 
+## Créditos
+- Script de extração de arquivos `.dat`, `.wta`, `.wtp` baseado em código de Brice Videau (BSD 2-Clause License).
+- Restante do projeto desenvolvido em C# por JuniorGBJ.
+
 ## Licença
-
-Este projeto está licenciado sob a **Licença MIT**.
-
-Você é livre para usar, copiar, modificar, mesclar, publicar, distribuir, sublicenciar e vender cópias do software, desde que o aviso de copyright e o texto da licença sejam incluídos em todas as cópias ou partes substanciais do software.
-
-Consulte o arquivo [`LICENSE`](LICENSE) para obter o texto completo da licença.
-
-Copyright (c) 2026 Junior GBJ
+Este projeto utiliza a licença BSD 2-Clause. Veja o arquivo LICENSE para mais detalhes.

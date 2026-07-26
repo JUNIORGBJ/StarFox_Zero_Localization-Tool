@@ -100,14 +100,9 @@ The DAT helper tool allows:
 7. Save the new `.mcd`
 8. If working with game packages, use the `.dat` tool to extract or repack
 
+## Credits
+- Extraction script for `.dat`, `.wta`, `.wtp` files based on code by Brice Videau (BSD 2-Clause License).
+- Remaining parts of the project developed in C# by JuniorGBJ.
+
 ## License
-
-This project is licensed under the **MIT License**.
-
-You are free to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-See the [`LICENSE`](LICENSE) file for details.
-
-Copyright (c) 2026 Junior GBJ
+This project uses the BSD 2-Clause License. See the LICENSE file for more details.
