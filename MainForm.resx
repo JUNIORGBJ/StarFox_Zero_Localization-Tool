@@ -7484,10 +7484,10 @@ para importar o arquivo DDS editado.</value>
     <value>Segoe UI Semibold, 9.75pt, style=Bold</value>
   </data>
   <data name="fileGroupBox.Location" type="System.Drawing.Point, System.Drawing">
-    <value>14, 25</value>
+    <value>14, 30</value>
   </data>
   <data name="fileGroupBox.Size" type="System.Drawing.Size, System.Drawing">
-    <value>313, 87</value>
+    <value>313, 82</value>
   </data>
   <data name="fileGroupBox.TabIndex" type="System.Int32, mscorlib">
     <value>2</value>
