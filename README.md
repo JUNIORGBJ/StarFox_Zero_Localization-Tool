@@ -1,9 +1,13 @@
+<p align="center">
+  <a href="README.pt_BR.md">🇧🇷 Português</a> | 🇺🇸 English
+</p>
+
 <h1 align="center"><figure>
   <img src="Fox.png">
 </figure></h1>
 
 <p align="center">
-  Editor WinForms para arquivos <code>.mcd</code> de <strong>Star Fox Zero</strong>, com foco em localização, revisão de textos, remapeamento de charset e suporte a pacotes <code>.dat</code>.
+  WinForms editor for <code>.mcd</code> files from <strong>Star Fox Zero</strong>, focused on localization, text review, charset remapping, and support for <code>.dat</code> packages.
 </p>
 
 <p align="center">
@@ -13,62 +17,62 @@
   <img alt="Visual Studio" src="https://img.shields.io/badge/Visual%20Studio-2022-5C2D91?style=for-the-badge">
 </p>
 
-## Visão Geral
+## Overview
 
-O **StarFox Zero Localization Tool** foi criado para facilitar a edição dos arquivos de texto do jogo com uma interface nativa em **C# + WinForms**.
+The **StarFox Zero Localization Tool** was created to facilitate editing of the game's text files with a native **C# + WinForms** interface.
 
-Além da edição de strings, o projeto também oferece ferramentas para:
+In addition to string editing, the project also offers tools for:
 
-- validar cobertura de charset;
-- importar e exportar textos via CSV;
-- remapear caracteres e flags de idioma;
-- criar e ajustar novos glyphs;
-- exportar e reimportar texturas associadas ao atlas de fonte;
-- extrair e reempacotar arquivos `.dat`, `.dtt`, `.eff` e `.evn`.
+- validating charset coverage;
+- importing and exporting texts via CSV;
+- remapping characters and language flags;
+- creating and adjusting new glyphs;
+- exporting and reimporting textures associated with the font atlas;
+- extracting and repacking `.dat`, `.dtt`, `.eff` and `.evn` files.
 
-## Destaques
+## Highlights
 
-- Interface desktop nativa, sem dependências web
-- Compatível com o Designer do Visual Studio 2022
-- Fluxo direto para abrir, editar, validar e salvar arquivos `.mcd`
-- Round-trip de tradução por CSV
-- Preview visual do atlas e dos glyphs
-- Ferramenta integrada para reempacotamento de arquivos de jogo
+- Native desktop interface, no web dependencies
+- Compatible with Visual Studio 2022 Designer
+- Direct workflow to open, edit, validate and save `.mcd` files
+- CSV round‑trip translation
+- Visual preview of the atlas and glyphs
+- Integrated tool for repacking game files
 
-## Recursos
+## Features
 
-### Editor de MCD
+### MCD Editor
 
-- abertura e salvamento de arquivos `.mcd`;
-- fechamento do arquivo atual com reset completo do estado da UI;
-- navegação por eventos e strings em árvore;
-- edição direta do texto selecionado;
-- busca textual com navegação entre resultados;
-- substituição individual e em lote.
+- opening and saving `.mcd` files;
+- closing the current file with full UI state reset;
+- navigation through events and strings in a tree view;
+- direct editing of selected text;
+- textual search with navigation between results;
+- individual and batch replacement.
 
-### Localização e charset
+### Localization and charset
 
-- validação de caracteres ausentes no charset;
-- exportação das strings para CSV;
-- importação de traduções a partir de CSV;
-- remapeamento de caractere-fonte para caractere-destino;
-- atualização de flags de idioma do caractere;
-- criação de novos caracteres com seleção visual da área do glyph;
-- ajuste fino de largura, altura e posição da seleção.
+- validation of missing characters in the charset;
+- exporting strings to CSV;
+- importing translations from CSV;
+- source‑to‑destination character remapping;
+- updating language flags of characters;
+- creating new characters with visual glyph area selection;
+- fine‑tuning width, height and position of the selection.
 
-### Texturas e preview
+### Textures and preview
 
-- preview do atlas de textura vinculado ao glyph;
-- visualização ampliada da região selecionada;
-- exportação da textura para DDS;
-- importação de DDS preservando o fluxo atual da ferramenta.
+- preview of the texture atlas linked to the glyph;
+- enlarged view of the selected region;
+- exporting the texture to DDS;
+- importing DDS while preserving the current tool workflow.
 
-### Arquivos DAT
+### DAT Files
 
-A ferramenta auxiliar de arquivos DAT permite:
+The DAT helper tool allows:
 
-- extrair arquivos `.dat`, `.dtt`, `.eff` e `.evn`;
-- reempacotar respeitando o layout original.
+- extracting `.dat`, `.dtt`, `.eff` and `.evn` files;
+- repacking while respecting the original layout.
 
 ## Stack
 
@@ -77,31 +81,33 @@ A ferramenta auxiliar de arquivos DAT permite:
 - **Windows Forms**
 - **Visual Studio 2022**
 
-## Como Compilar
+## How to Build
 
 ### Visual Studio 2022
 
-1. Abra `StarFoxZeroLocalizationTool.sln`
-2. Selecione a configuração desejada
-3. Compile normalmente pelo Visual Studio
+1. Open `StarFoxZeroLocalizationTool.sln`
+2. Select the desired configuration
+3. Build normally via Visual Studio
 
-## Fluxo de Uso
+## Usage Flow
 
-1. Abra um arquivo `.mcd`
-2. Navegue pelas entradas na árvore lateral
-3. Edite os textos desejados
-4. Valide o charset para localizar caracteres faltantes
-5. Exporte ou importe CSV quando necessário
-6. Ajuste glyphs e texturas do atlas, se o arquivo exigir
-7. Salve o novo `.mcd`
-8. Se estiver trabalhando com pacotes do jogo, use a ferramenta de `.dat` para extrair ou reempacotar
+1. Open a `.mcd` file
+2. Browse entries in the side tree
+3. Edit the desired texts
+4. Validate charset to locate missing characters
+5. Export or import CSV when needed
+6. Adjust glyphs and atlas textures if the file requires it
+7. Save the new `.mcd`
+8. If working with game packages, use the `.dat` tool to extract or repack
 
-## Licença
+## License
 
-Este projeto está licenciado sob a **Licença MIT**.
+This project is licensed under the **MIT License**.
 
-Você é livre para usar, copiar, modificar, mesclar, publicar, distribuir, sublicenciar e vender cópias do software, desde que o aviso de copyright e o texto da licença sejam incluídos em todas as cópias ou partes substanciais do software.
+You are free to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-Consulte o arquivo [`LICENSE`](LICENSE) para obter o texto completo da licença.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+See the [`LICENSE`](LICENSE) file for details.
 
 Copyright (c) 2026 Junior GBJ
