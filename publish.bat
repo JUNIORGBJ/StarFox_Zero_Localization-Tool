@@ -1,20 +1,20 @@
 @echo off
-echo Publicando Projetos LimpaBackup...
+echo Publicando Projetos StarFoxZeroLocalizationTool...
 
 echo.
-echo Publicando LimpaBackup.Gui...
+echo Publicando StarFoxZeroLocalizationTool.Gui...
 dotnet publish StarFoxZeroLocalizationTool.csproj -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
 if %errorlevel% neq 0 (
-    echo Falha na publicacao do LimpaBackup.Gui
+    echo Falha na publicacao do StarFoxZeroLocalizationTool.Gui
     pause
     exit /b 1
 )
 
 echo.
-echo Publicando LimpaBackup.Service...
+echo Publicando StarFoxZeroLocalizationTool.Service...
 dotnet publish StarFoxZeroLocalizationTool.csproj -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
 if %errorlevel% neq 0 (
-    echo Falha na publicacao do LimpaBackup.Service
+    echo Falha na publicacao do StarFoxZeroLocalizationTool.Service
     pause
     exit /b 1
 )
