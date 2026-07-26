@@ -1,5 +1,5 @@
 <h1 align="center"><figure>
-  <img src="Fox.PNG">
+  <img src="Fox.png">
 </figure></h1>
 
 <p align="center">
@@ -95,13 +95,6 @@ A ferramenta auxiliar de arquivos DAT permite:
 6. Ajuste glyphs e texturas do atlas, se o arquivo exigir
 7. Salve o novo `.mcd`
 8. Se estiver trabalhando com pacotes do jogo, use a ferramenta de `.dat` para extrair ou reempacotar
-
-## Diferenciais do Projeto
-
-- feito para uso prático em modding e localização;
-- interface orientada a produtividade, sem depender de scripts para operações comuns;
-- preserva um fluxo confortável para edição visual de fontes;
-- base preparada para evolução contínua em WinForms.
 
 ## Licença
 
