@@ -31,6 +31,9 @@ namespace StarFoxZeroLocalizationTool
             importarCsvToolStripMenuItem = new ToolStripMenuItem();
             ferramentasToolStripMenuItem = new ToolStripMenuItem();
             datArchiveToolStripMenuItem = new ToolStripMenuItem();
+            sobreToolStripMenuItem = new ToolStripMenuItem();
+            languageToolStripComboBox = new ToolStripComboBox();
+            languageToolStripLabel = new ToolStripLabel();
             headerPanel = new Panel();
             fileGroupBox = new GroupBox();
             loadButton = new Button();
@@ -121,7 +124,7 @@ namespace StarFoxZeroLocalizationTool
             // 
             menuStrip.BackColor = Color.White;
             menuStrip.ImageScalingSize = new Size(20, 20);
-            menuStrip.Items.AddRange(new ToolStripItem[] { arquivoToolStripMenuItem, ferramentasToolStripMenuItem });
+            menuStrip.Items.AddRange(new ToolStripItem[] { arquivoToolStripMenuItem, ferramentasToolStripMenuItem, sobreToolStripMenuItem, languageToolStripComboBox, languageToolStripLabel });
             resources.ApplyResources(menuStrip, "menuStrip");
             menuStrip.Name = "menuStrip";
             // 
@@ -178,6 +181,26 @@ namespace StarFoxZeroLocalizationTool
             datArchiveToolStripMenuItem.Name = "datArchiveToolStripMenuItem";
             resources.ApplyResources(datArchiveToolStripMenuItem, "datArchiveToolStripMenuItem");
             datArchiveToolStripMenuItem.Click += OpenDatArchiveToolMenuItem_Click;
+            // 
+            // sobreToolStripMenuItem
+            // 
+            sobreToolStripMenuItem.Name = "sobreToolStripMenuItem";
+            resources.ApplyResources(sobreToolStripMenuItem, "sobreToolStripMenuItem");
+            sobreToolStripMenuItem.Click += OpenAboutToolStripMenuItem_Click;
+            // 
+            // languageToolStripComboBox
+            // 
+            languageToolStripComboBox.Alignment = ToolStripItemAlignment.Right;
+            languageToolStripComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            languageToolStripComboBox.Name = "languageToolStripComboBox";
+            resources.ApplyResources(languageToolStripComboBox, "languageToolStripComboBox");
+            languageToolStripComboBox.SelectedIndexChanged += LanguageToolStripComboBox_SelectedIndexChanged;
+            // 
+            // languageToolStripLabel
+            // 
+            languageToolStripLabel.Alignment = ToolStripItemAlignment.Right;
+            languageToolStripLabel.Name = "languageToolStripLabel";
+            resources.ApplyResources(languageToolStripLabel, "languageToolStripLabel");
             // 
             // headerPanel
             // 
@@ -832,7 +855,7 @@ namespace StarFoxZeroLocalizationTool
             // editorPreviewPictureBox
             // 
             resources.ApplyResources(editorPreviewPictureBox, "editorPreviewPictureBox");
-            editorPreviewPictureBox.BackColor = Color.White;
+            editorPreviewPictureBox.BackColor = Color.Gainsboro;
             editorPreviewPictureBox.BorderStyle = BorderStyle.FixedSingle;
             editorPreviewPictureBox.Controls.Add(baselinePanel);
             editorPreviewPictureBox.Name = "editorPreviewPictureBox";
@@ -924,6 +947,9 @@ namespace StarFoxZeroLocalizationTool
         private ToolStripMenuItem importarCsvToolStripMenuItem = null!;
         private ToolStripMenuItem ferramentasToolStripMenuItem = null!;
         private ToolStripMenuItem datArchiveToolStripMenuItem = null!;
+        private ToolStripMenuItem sobreToolStripMenuItem = null!;
+        private ToolStripLabel languageToolStripLabel = null!;
+        private ToolStripComboBox languageToolStripComboBox = null!;
         private Panel headerPanel = null!;
         private GroupBox fileGroupBox = null!;
         private Button loadButton = null!;

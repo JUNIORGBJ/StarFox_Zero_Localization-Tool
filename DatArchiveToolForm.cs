@@ -3,6 +3,7 @@ using System.Drawing;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Forms;
+using StarFoxZeroLocalizationTool.Localization;
 using StarFoxZeroLocalizationTool.Services;
 
 namespace StarFoxZeroLocalizationTool;
@@ -14,9 +15,10 @@ public sealed partial class DatArchiveToolForm : Form
     public DatArchiveToolForm()
     {
         InitializeComponent();
+        LocalizationService.ApplyFormTexts(this);
         
-        Log("StarFox Zero Tools GUI initialized.");
-        Log("Ready to process files.");
+        Log(Loc.Get("DatArchiveToolForm.Log.Initialized"));
+        Log(Loc.Get("DatArchiveToolForm.Log.Ready"));
     }
 
     private void Log(string message)
@@ -31,8 +33,8 @@ public sealed partial class DatArchiveToolForm : Form
     {
         using var ofd = new OpenFileDialog
         {
-            Filter = "DAT files (*.dat, *.dtt, *.eff, *.evn)|*.dat;*.dtt;*.eff;*.evn|All files (*.*)|*.*",
-            Title = "Select DAT/DTT Archive to Extract"
+            Filter = Loc.Get("DatArchiveToolForm.Dialog.DatFilter"),
+            Title = Loc.Get("DatArchiveToolForm.Dialog.SelectDatTitle")
         };
 
         var projectRoot = FindProjectRoot();
@@ -48,7 +50,7 @@ public sealed partial class DatArchiveToolForm : Form
         }
 
         var filePath = ofd.FileName;
-        Log($"Selected DAT File: {filePath}");
+        Log(Loc.Format("DatArchiveToolForm.Log.SelectedDatFile", filePath));
 
         try
         {
@@ -58,15 +60,15 @@ public sealed partial class DatArchiveToolForm : Form
             var suffix = ext.Replace('.', '_');
             var outDir = Path.Combine(dir, baseName + suffix);
 
-            Log($"Extracting to: {outDir}");
+            Log(Loc.Format("DatArchiveToolForm.Log.ExtractingTo", outDir));
             var manifest = _service.Extract(filePath, outDir);
 
-            Log($"SUCCESS: Extracted {manifest.Entries.Count} file(s) successfully.");
+            Log(Loc.Format("DatArchiveToolForm.Log.ExtractSuccess", manifest.Entries.Count));
         }
         catch (Exception ex)
         {
-            Log($"ERROR: {ex.Message}");
-            MessageBox.Show(this, $"Erro ao extrair arquivo: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Log(Loc.Format("DatArchiveToolForm.Log.Error", ex.Message));
+            MessageBox.Show(this, Loc.Format("DatArchiveToolForm.Message.ExtractError", ex.Message), Loc.Get("Common.ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -74,7 +76,7 @@ public sealed partial class DatArchiveToolForm : Form
     {
         using var fbd = new FolderBrowserDialog
         {
-            Description = "Select an extracted directory (e.g. *_dat) to repackage"
+            Description = Loc.Get("DatArchiveToolForm.Dialog.RepackFolderDescription")
         };
 
         var projectRoot = FindProjectRoot();
@@ -90,13 +92,13 @@ public sealed partial class DatArchiveToolForm : Form
         }
 
         var folderPath = fbd.SelectedPath;
-        Log($"Selected DAT Folder: {folderPath}");
+        Log(Loc.Format("DatArchiveToolForm.Log.SelectedDatFolder", folderPath));
 
         var metaDir = Path.Combine(folderPath, ".metadata");
         if (!Directory.Exists(metaDir))
         {
-            Log("ERROR: Folder is missing .metadata subfolder. This folder was not extracted by this tool.");
-            MessageBox.Show(this, "Esta pasta não contém a subpasta .metadata necessária.", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Log(Loc.Get("DatArchiveToolForm.Log.MetadataMissing"));
+            MessageBox.Show(this, Loc.Get("DatArchiveToolForm.Message.MetadataMissing"), Loc.Get("Common.ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
@@ -134,8 +136,12 @@ public sealed partial class DatArchiveToolForm : Form
 
         using var sfd = new SaveFileDialog
         {
-            Filter = $"DAT files (*{extension})|*{extension}|All files (*.*)|*.*",
-            Title = "Save Repackaged DAT/DTT",
+            Filter = string.Format(
+                System.Globalization.CultureInfo.CurrentCulture,
+                "DAT files (*{0})|*{0}|{1}",
+                extension,
+                Loc.Get("Common.Filter.AllFiles")),
+            Title = Loc.Get("DatArchiveToolForm.Dialog.SaveRepackedTitle"),
             FileName = suggestedName
         };
 
@@ -150,17 +156,17 @@ public sealed partial class DatArchiveToolForm : Form
         }
 
         var outputPath = sfd.FileName;
-        Log($"Repackaging to: {outputPath}");
+        Log(Loc.Format("DatArchiveToolForm.Log.RepackingTo", outputPath));
 
         try
         {
             _service.Repack(folderPath, outputPath);
-            Log("SUCCESS: Repackaged successfully.");
+            Log(Loc.Get("DatArchiveToolForm.Log.RepackSuccess"));
         }
         catch (Exception ex)
         {
-            Log($"ERROR: {ex.Message}");
-            MessageBox.Show(this, $"Erro ao reempacotar pasta: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Log(Loc.Format("DatArchiveToolForm.Log.Error", ex.Message));
+            MessageBox.Show(this, Loc.Format("DatArchiveToolForm.Message.RepackError", ex.Message), Loc.Get("Common.ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 

@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using StarFoxZeroLocalizationTool.Localization;
 using StarFoxZeroLocalizationTool.Models;
 using StarFoxZeroLocalizationTool.Services;
 
@@ -32,9 +33,28 @@ namespace StarFoxZeroLocalizationTool
         private readonly Dictionary<string, Bitmap> _editorPreviewAtlasCache = new(StringComparer.OrdinalIgnoreCase);
         private bool _draggingBaseline = false;
         private int _baselineMouseY = 0;
+        private bool _suppressLanguageSelectionEvents;
+        private static readonly HashSet<string> DynamicControlNames = new(StringComparer.Ordinal)
+        {
+            "loadedFileValueLabel",
+            "selectedEntryLabel",
+            "navigationSummaryLabel",
+            "editorHelperLabel",
+            "searchHelperLabel",
+            "remapHelperLabel",
+            "newCharacterSelectionLabel",
+            "remapTexturePreviewLabel"
+        };
+        private static readonly HashSet<string> DynamicToolStripNames = new(StringComparer.Ordinal)
+        {
+            "languageToolStripComboBox",
+            "statusToolStripStatusLabel"
+        };
+
         public MainForm()
         {
             InitializeComponent();
+            ApplyLocalizedStaticTexts();
             KeyPreview = true;
             remapTexturePreviewPictureBox.MouseDown += RemapTexturePreviewPictureBox_MouseDown;
             remapTexturePreviewPictureBox.MouseMove += RemapTexturePreviewPictureBox_MouseMove;
@@ -46,22 +66,105 @@ namespace StarFoxZeroLocalizationTool
             ConfigureInitialState();
         }
 
+        private void ApplyLocalizedStaticTexts()
+        {
+            LocalizationService.ApplyFormTexts(this, DynamicControlNames, DynamicToolStripNames);
+            PopulateLanguageSelector();
+        }
+
+        private void PopulateLanguageSelector()
+        {
+            _suppressLanguageSelectionEvents = true;
+            languageToolStripComboBox.Items.Clear();
+
+            foreach (var language in LocalizationService.Languages)
+            {
+                languageToolStripComboBox.Items.Add(new LanguageComboOption(
+                    language.Code,
+                    GetLanguageDisplayName(language.Code)));
+            }
+
+            var selectedIndex = -1;
+            for (var i = 0; i < languageToolStripComboBox.Items.Count; i++)
+            {
+                if (languageToolStripComboBox.Items[i] is LanguageComboOption option &&
+                    string.Equals(option.Code, LocalizationService.CurrentLanguageCode, StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedIndex = i;
+                    break;
+                }
+            }
+
+            languageToolStripComboBox.SelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
+            _suppressLanguageSelectionEvents = false;
+        }
+
+        private static string GetLanguageDisplayName(string languageCode)
+        {
+            return languageCode.Equals("pt-BR", StringComparison.OrdinalIgnoreCase)
+                ? Loc.Get("Common.Language.PortugueseBrazil")
+                : Loc.Get("Common.Language.English");
+        }
+
         private void ConfigureInitialState()
         {
-            loadedFileValueLabel.Text = "Nenhum arquivo carregado";
-            selectedEntryLabel.Text = "Nenhuma string selecionada";
-            navigationSummaryLabel.Text = "Carregue um arquivo MCD para visualizar os eventos.";
-            UpdateSearchHelper("Digite um termo e pressione Enter para pesquisar.", InfoColor);
-            UpdateEditorHelper("...", InfoColor);
+            loadedFileValueLabel.Text = Loc.Get("MainForm.Init.NoFileLoaded");
+            selectedEntryLabel.Text = Loc.Get("MainForm.Init.NoStringSelected");
+            navigationSummaryLabel.Text = Loc.Get("MainForm.Init.LoadFileToViewEvents");
+            UpdateSearchHelper(Loc.Get("MainForm.Init.SearchHint"), InfoColor);
+            UpdateEditorHelper(Loc.Get("MainForm.Init.EditorHint"), InfoColor);
             UpdateRemapVariantDetails(null);
             UpdateLanguageFlagsCurrentValue(null);
             UpdateNewCharacterBaseInfo(null);
             UpdateNewCharacterSelectionInfo();
             UpdateRemapTexturePreview(null);
             UpdateEditorPreview();
-            UpdateRemapHelper("Carregue um arquivo para remapear caracteres do charset.", InfoColor);
-            statusToolStripStatusLabel.Text = "Pronto";
+            UpdateRemapHelper(Loc.Get("MainForm.Init.RemapHint"), InfoColor);
+            statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.Ready");
             UpdateUiState(false);
+        }
+
+        private void LanguageToolStripComboBox_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_suppressLanguageSelectionEvents || languageToolStripComboBox.SelectedItem is not LanguageComboOption option)
+            {
+                return;
+            }
+
+            if (!LocalizationService.ApplyLanguage(option.Code))
+            {
+                PopulateLanguageSelector();
+                return;
+            }
+
+            RefreshLocalizedUi();
+        }
+
+        private void RefreshLocalizedUi()
+        {
+            var selectedTag = textTextBox.Tag is NodeTag tag ? CloneTag(tag) : null;
+            var selectedCharId = remapSourceComboBox.SelectedItem is CharRemapOption option ? option.CharId : (int?)null;
+            var hasLoadedFile = _currentMcd != null;
+
+            ApplyLocalizedStaticTexts();
+
+            if (!hasLoadedFile)
+            {
+                ConfigureInitialState();
+                return;
+            }
+
+            loadedFileValueLabel.Text = Path.GetFileName(_currentFilePath);
+            PopulateTreeView();
+            PopulateRemapSourceOptions(selectedCharId);
+            RefreshUiAfterTextImport(selectedTag);
+            UpdateNewCharacterSelectionInfo();
+            UpdateRemapTexturePreview(remapSourceComboBox.SelectedItem as CharRemapOption);
+            UpdateEditorPreview();
+            UpdateUiState(true);
+            statusToolStripStatusLabel.Text = string.IsNullOrWhiteSpace(_currentFilePath)
+                ? Loc.Get("MainForm.Status.Ready")
+                : Loc.Format("MainForm.Status.FileLoaded", Path.GetFileName(_currentFilePath));
         }
 
         private void UpdateUiState(bool hasLoadedFile)
@@ -98,8 +201,8 @@ namespace StarFoxZeroLocalizationTool
         {
             using var ofd = new OpenFileDialog
             {
-                Filter = "MCD Files (*.mcd)|*.mcd|All Files (*.*)|*.*",
-                Title = "Abrir arquivo MCD"
+                Filter = Loc.Get("MainForm.Dialog.McdFilter"),
+                Title = Loc.Get("MainForm.Dialog.OpenMcdTitle")
             };
 
             if (ofd.ShowDialog() != DialogResult.OK)
@@ -119,20 +222,20 @@ namespace StarFoxZeroLocalizationTool
                 ClearSearchResults();
                 ValidateSearchInput(showError: false);
                 ValidateRemapInput(showError: false);
-            ValidateLanguageFlagsInput(showError: false);
+                ValidateLanguageFlagsInput(showError: false);
                 UpdateUiState(true);
                 TrySelectFirstStringNode();
-                statusToolStripStatusLabel.Text = $"Arquivo carregado: {Path.GetFileName(ofd.FileName)}";
+                statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.FileLoaded", Path.GetFileName(ofd.FileName));
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Erro ao carregar o arquivo: {ex.Message}",
-                    "Erro",
+                    Loc.Format("MainForm.Message.LoadFileError", ex.Message),
+                    Loc.Get("Common.ErrorTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
 
-                statusToolStripStatusLabel.Text = "Falha ao carregar o arquivo.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.FileLoadFailed");
             }
         }
 
@@ -145,9 +248,9 @@ namespace StarFoxZeroLocalizationTool
 
             using var sfd = new SaveFileDialog
             {
-                Filter = "MCD Files (*.mcd)|*.mcd|All Files (*.*)|*.*",
-                Title = "Salvar arquivo MCD",
-                FileName = _currentFilePath ?? "output.mcd"
+                Filter = Loc.Get("MainForm.Dialog.McdFilter"),
+                Title = Loc.Get("MainForm.Dialog.SaveMcdTitle"),
+                FileName = _currentFilePath ?? Loc.Get("MainForm.Dialog.OutputMcdName")
             };
 
             if (sfd.ShowDialog() != DialogResult.OK)
@@ -158,23 +261,23 @@ namespace StarFoxZeroLocalizationTool
             try
             {
                 McdIO.WriteMcd(_currentMcd, sfd.FileName);
-                statusToolStripStatusLabel.Text = $"Arquivo salvo: {Path.GetFileName(sfd.FileName)}";
+                statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.FileSaved", Path.GetFileName(sfd.FileName));
 
                 MessageBox.Show(
-                    "Arquivo salvo com sucesso.",
-                    "Salvar",
+                    Loc.Get("MainForm.Message.FileSavedSuccess"),
+                    Loc.Get("Common.SaveTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Erro ao salvar o arquivo: {ex.Message}",
-                    "Erro",
+                    Loc.Format("MainForm.Message.SaveFileError", ex.Message),
+                    Loc.Get("Common.ErrorTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
 
-                statusToolStripStatusLabel.Text = "Falha ao salvar o arquivo.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.FileSaveFailed");
             }
         }
 
@@ -221,7 +324,7 @@ namespace StarFoxZeroLocalizationTool
             baselinePanel.Top = 127;
 
             ConfigureInitialState();
-            statusToolStripStatusLabel.Text = "Arquivo MCD fechado.";
+            statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.FileClosed");
         }
 
         private void ExportCsvButton_Click(object? sender, EventArgs e)
@@ -232,13 +335,13 @@ namespace StarFoxZeroLocalizationTool
             }
 
             var suggestedFileName = string.IsNullOrWhiteSpace(_currentFilePath)
-                ? "mcd_strings.csv"
-                : Path.GetFileNameWithoutExtension(_currentFilePath) + "_strings.csv";
+                ? Loc.Get("MainForm.Dialog.DefaultCsvName")
+                : Path.GetFileNameWithoutExtension(_currentFilePath) + Loc.Get("MainForm.Dialog.CsvSuffix");
 
             using var sfd = new SaveFileDialog
             {
-                Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
-                Title = "Exportar strings do MCD para CSV",
+                Filter = Loc.Get("MainForm.Dialog.CsvFilter"),
+                Title = Loc.Get("MainForm.Dialog.ExportCsvTitle"),
                 FileName = suggestedFileName
             };
 
@@ -250,21 +353,21 @@ namespace StarFoxZeroLocalizationTool
             try
             {
                 McdTextExchangeService.ExportToCsv(_currentMcd, sfd.FileName, _currentFilePath);
-                statusToolStripStatusLabel.Text = $"CSV exportado: {Path.GetFileName(sfd.FileName)}";
+                statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.CsvExported", Path.GetFileName(sfd.FileName));
                 MessageBox.Show(
                     this,
-                    "Strings exportadas com sucesso para CSV.",
-                    "Exportar CSV",
+                    Loc.Get("MainForm.Message.CsvExportSuccess"),
+                    Loc.Get("MainForm.Dialog.ExportCsvCaption"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                statusToolStripStatusLabel.Text = "Falha ao exportar CSV.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.CsvExportFailed");
                 MessageBox.Show(
                     this,
-                    $"Erro ao exportar o CSV: {ex.Message}",
-                    "Erro",
+                    Loc.Format("MainForm.Message.CsvExportError", ex.Message),
+                    Loc.Get("Common.ErrorTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -279,8 +382,8 @@ namespace StarFoxZeroLocalizationTool
 
             using var ofd = new OpenFileDialog
             {
-                Filter = "CSV Files (*.csv)|*.csv|All Files (*.*)|*.*",
-                Title = "Importar strings de CSV para o MCD carregado"
+                Filter = Loc.Get("MainForm.Dialog.CsvFilter"),
+                Title = Loc.Get("MainForm.Dialog.ImportCsvTitle")
             };
 
             if (ofd.ShowDialog(this) != DialogResult.OK)
@@ -297,26 +400,30 @@ namespace StarFoxZeroLocalizationTool
                 var result = McdTextExchangeService.ImportFromCsv(_currentMcd, ofd.FileName);
                 RefreshUiAfterTextImport(previousSelection);
 
-                var summary = $"Importacao concluida. Aplicadas: {result.AppliedEntries}/{result.TotalImportedEntries}. "
-                            + $"Exatas: {result.ExactMatches}. Fallback por ordem: {result.IndexFallbackMatches}. "
-                            + $"Sem traducao: {result.SkippedEmptyTranslatedRows}. "
-                            + $"Nao encontradas: {result.UnmatchedEntries}.";
+                var summary = Loc.Format(
+                    "MainForm.Message.ImportSummary",
+                    result.AppliedEntries,
+                    result.TotalImportedEntries,
+                    result.ExactMatches,
+                    result.IndexFallbackMatches,
+                    result.SkippedEmptyTranslatedRows,
+                    result.UnmatchedEntries);
 
                 statusToolStripStatusLabel.Text = summary;
                 MessageBox.Show(
                     this,
                     summary,
-                    "Importar CSV",
+                    Loc.Get("MainForm.Dialog.ImportCsvCaption"),
                     MessageBoxButtons.OK,
                     result.UnmatchedEntries == 0 ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
             }
             catch (Exception ex)
             {
-                statusToolStripStatusLabel.Text = "Falha ao importar CSV.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.CsvImportFailed");
                 MessageBox.Show(
                     this,
-                    $"Erro ao importar o CSV: {ex.Message}",
-                    "Erro",
+                    Loc.Format("MainForm.Message.CsvImportError", ex.Message),
+                    Loc.Get("Common.ErrorTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
@@ -328,6 +435,12 @@ namespace StarFoxZeroLocalizationTool
             toolForm.ShowDialog(this);
         }
 
+        private void OpenAboutToolStripMenuItem_Click(object? sender, EventArgs e)
+        {
+            using var aboutForm = new AboutForm();
+            aboutForm.ShowDialog(this);
+        }
+
         private void SearchTextBox_TextChanged(object? sender, EventArgs e)
         {
             ClearSearchResults();
@@ -337,14 +450,14 @@ namespace StarFoxZeroLocalizationTool
 
                 if (_currentMcd != null)
                 {
-                    UpdateSearchHelper("Digite um termo e pressione Enter para pesquisar.", InfoColor);
+                    UpdateSearchHelper(Loc.Get("MainForm.Init.SearchHint"), InfoColor);
                 }
 
                 return;
             }
 
             validationErrorProvider.SetError(searchTextBox, string.Empty);
-            UpdateSearchHelper("Pressione Enter ou clique em Pesquisar.", InfoColor);
+            UpdateSearchHelper(Loc.Get("MainForm.SearchHint.PressEnterOrSearch"), InfoColor);
         }
 
         private void ReplaceTextBox_TextChanged(object? sender, EventArgs e)
@@ -372,7 +485,7 @@ namespace StarFoxZeroLocalizationTool
             if (!string.IsNullOrWhiteSpace(searchTextBox.Text) && _searchMatches.Count > 0)
             {
                 PerformSearch(showEmptyValidation: false, focusFirstMatch: false);
-                UpdateSearchHelper("Modo da pesquisa atualizado.", InfoColor);
+                UpdateSearchHelper(Loc.Get("MainForm.SearchHint.SearchModeUpdated"), InfoColor);
                 return;
             }
 
@@ -419,8 +532,8 @@ namespace StarFoxZeroLocalizationTool
 
             if (!EnsureSearchResultsForReplacement())
             {
-                UpdateSearchHelper("Pesquise um termo com resultados antes de substituir.", WarningColor);
-                statusToolStripStatusLabel.Text = "Substituicao indisponivel sem resultados.";
+                UpdateSearchHelper(Loc.Get("MainForm.SearchHint.ReplaceRequiresResults"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.ReplaceUnavailableWithoutResults");
                 return;
             }
 
@@ -439,8 +552,8 @@ namespace StarFoxZeroLocalizationTool
                 PerformSearch(showEmptyValidation: false, focusFirstMatch: true);
                 if (_searchMatches.Count == 0)
                 {
-                    UpdateSearchHelper("Nenhum resultado valido permaneceu para substituir.", WarningColor);
-                    statusToolStripStatusLabel.Text = "Nenhuma substituicao aplicada.";
+                    UpdateSearchHelper(Loc.Get("MainForm.SearchHint.NoValidResultsToReplace"), WarningColor);
+                    statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.NoReplacementApplied");
                     return;
                 }
 
@@ -452,8 +565,8 @@ namespace StarFoxZeroLocalizationTool
             SetStringEntryText(match.Tag, updatedText);
 
             PerformSearch(showEmptyValidation: false, focusFirstMatch: true);
-            UpdateSearchHelper("Ocorrencia atual substituida com sucesso.", SuccessColor);
-            statusToolStripStatusLabel.Text = "Substituicao da ocorrencia atual concluida.";
+            UpdateSearchHelper(Loc.Get("MainForm.SearchHint.CurrentOccurrenceReplaced"), SuccessColor);
+            statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.CurrentOccurrenceReplaced");
         }
 
         private void ReplaceAllButton_Click(object? sender, EventArgs e)
@@ -465,8 +578,8 @@ namespace StarFoxZeroLocalizationTool
 
             if (!EnsureSearchResultsForReplacement())
             {
-                UpdateSearchHelper("Pesquise um termo com resultados antes de substituir.", WarningColor);
-                statusToolStripStatusLabel.Text = "Substituicao indisponivel sem resultados.";
+                UpdateSearchHelper(Loc.Get("MainForm.SearchHint.ReplaceRequiresResults"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.ReplaceUnavailableWithoutResults");
                 return;
             }
 
@@ -501,17 +614,17 @@ namespace StarFoxZeroLocalizationTool
 
             if (totalReplacements == 0)
             {
-                UpdateSearchHelper("Nenhuma ocorrencia encontrada para substituir.", WarningColor);
-                statusToolStripStatusLabel.Text = "Nenhuma substituicao aplicada.";
+                UpdateSearchHelper(Loc.Get("MainForm.SearchHint.NoOccurrenceFoundToReplace"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.NoReplacementApplied");
                 return;
             }
 
             RefreshUiAfterTextImport(previousSelection);
             UpdateSearchHelper(
-                $"{totalReplacements} ocorrencia(s) substituida(s) em {changedStrings} string(s).",
+                Loc.Format("MainForm.SearchHint.ReplaceAllSummary", totalReplacements, changedStrings),
                 SuccessColor);
             statusToolStripStatusLabel.Text =
-                $"Substituicao concluida: {totalReplacements} ocorrencia(s) em {changedStrings} string(s).";
+                Loc.Format("MainForm.Status.ReplaceAllSummary", totalReplacements, changedStrings);
         }
 
         private void ValidateCharsetButton_Click(object? sender, EventArgs e)
@@ -525,32 +638,31 @@ namespace StarFoxZeroLocalizationTool
             if (validation.Issues.Count == 0)
             {
                 UpdateSearchHelper(
-                    $"Verificacao concluida: {validation.TotalStringsChecked} string(s) analisadas, sem problemas de charset/LanguageFlags.",
+                    Loc.Format("MainForm.SearchHint.ValidationNoIssues", validation.TotalStringsChecked),
                     SuccessColor);
-                statusToolStripStatusLabel.Text = "Verificacao de charset concluida sem problemas.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.ValidationNoIssues");
                 MessageBox.Show(
                     this,
-                    $"Nenhum problema encontrado.{Environment.NewLine}{Environment.NewLine}" +
-                    $"Strings analisadas: {validation.TotalStringsChecked}",
-                    "Verificar charset / LanguageFlags",
+                    Loc.Format("MainForm.Message.ValidationNoIssuesDialog", Environment.NewLine, validation.TotalStringsChecked),
+                    Loc.Get("MainForm.Dialog.ValidateCharsetCaption"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 return;
             }
 
             UpdateSearchHelper(
-                $"Verificacao concluida: {validation.Issues.Count} problema(s) em {validation.AffectedStringsCount} string(s).",
+                Loc.Format("MainForm.SearchHint.ValidationIssuesFound", validation.Issues.Count, validation.AffectedStringsCount),
                 WarningColor);
-            statusToolStripStatusLabel.Text = $"Charset/LF: {validation.Issues.Count} problema(s) encontrados.";
-            ShowTextReportDialog("Relatorio de charset / LanguageFlags", BuildCharsetValidationReport(validation));
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.ValidationIssuesFound", validation.Issues.Count);
+            ShowTextReportDialog(Loc.Get("Common.Dialog.ReportCharsetTitle"), BuildCharsetValidationReport(validation));
         }
 
         private void PerformSearch(bool showEmptyValidation = true, bool focusFirstMatch = true)
         {
             if (_currentMcd == null)
             {
-                UpdateSearchHelper("Carregue um arquivo MCD antes de pesquisar.", WarningColor);
-                statusToolStripStatusLabel.Text = "Pesquisa indisponivel sem arquivo carregado.";
+                UpdateSearchHelper(Loc.Get("MainForm.SearchHint.LoadFileBeforeSearch"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.SearchUnavailableWithoutFile");
                 return;
             }
 
@@ -604,13 +716,13 @@ namespace StarFoxZeroLocalizationTool
 
             if (_searchMatches.Count == 0)
             {
-                UpdateSearchHelper("Nenhum resultado encontrado para o termo informado.", WarningColor);
-                statusToolStripStatusLabel.Text = "Pesquisa concluida sem resultados.";
+                UpdateSearchHelper(Loc.Get("MainForm.SearchHint.NoResultsFound"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.SearchCompletedWithoutResults");
                 return;
             }
 
-            UpdateSearchHelper($"{_searchMatches.Count} ocorrencia(s) encontrada(s).", SuccessColor);
-            statusToolStripStatusLabel.Text = $"Pesquisa concluida: {_searchMatches.Count} resultado(s).";
+            UpdateSearchHelper(Loc.Format("MainForm.SearchHint.ResultsFound", _searchMatches.Count), SuccessColor);
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.SearchCompletedWithResults", _searchMatches.Count);
 
             if (focusFirstMatch)
             {
@@ -628,8 +740,8 @@ namespace StarFoxZeroLocalizationTool
 
             if (showError)
             {
-                validationErrorProvider.SetError(searchTextBox, "Informe um texto para pesquisar.");
-                UpdateSearchHelper("O campo de pesquisa marcado com * e obrigatorio para buscar.", WarningColor);
+                validationErrorProvider.SetError(searchTextBox, Loc.Get("MainForm.Validation.SearchRequired"));
+                UpdateSearchHelper(Loc.Get("MainForm.SearchHint.SearchFieldRequired"), WarningColor);
             }
 
             return false;
@@ -709,8 +821,8 @@ namespace StarFoxZeroLocalizationTool
 
             if (remapSourceComboBox.SelectedItem is not CharRemapOption sourceOption)
             {
-                UpdateRemapHelper("Selecione um caractere de origem valido para o remapeamento.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao remapear caractere.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.SelectValidSource"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.RemapFailed");
                 return;
             }
             var targetValue = NormalizeSingleTextElement(remapTargetTextBox.Text.Trim());
@@ -718,8 +830,8 @@ namespace StarFoxZeroLocalizationTool
 
             if (affectedEntry == null)
             {
-                UpdateRemapHelper("Nenhuma variante do charset foi encontrada para o caractere selecionado.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao remapear caractere.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.NoVariantsFound"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.RemapFailed");
                 return;
             }
 
@@ -727,8 +839,8 @@ namespace StarFoxZeroLocalizationTool
             if (overwriteWarning)
             {
                 var result = MessageBox.Show(
-                    $"O caractere '{targetValue}' ja existe no charset. Deseja continuar mesmo assim?",
-                    "Confirmar remapeamento",
+                    Loc.Format("MainForm.Dialog.ConfirmRemapMessage", targetValue),
+                    Loc.Get("MainForm.Dialog.ConfirmRemapTitle"),
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning);
 
@@ -756,10 +868,10 @@ namespace StarFoxZeroLocalizationTool
             }
 
             UpdateRemapHelper(
-                $"Variante ID {sourceOption.CharId} do caractere '{sourceOption.Value}' remapeada para '{targetValue}'.",
+                Loc.Format("MainForm.RemapHint.RemapApplied", sourceOption.CharId, sourceOption.Value, targetValue),
                 SuccessColor);
             UpdateEditorPreview();
-            statusToolStripStatusLabel.Text = $"Remapeamento aplicado: ID {sourceOption.CharId} {sourceOption.Value} -> {targetValue}.";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.RemapApplied", sourceOption.CharId, sourceOption.Value, targetValue);
         }
 
         private void PopulateTreeView()
@@ -779,9 +891,9 @@ namespace StarFoxZeroLocalizationTool
             {
                 var ev = _currentMcd.Events[evIdx];
                 var usedEvent = _currentMcd.UsedEvents.FirstOrDefault(u => u.EventID == ev.EventID);
-                var eventName = usedEvent?.Name ?? $"Evento {ev.Id}";
+                var eventName = usedEvent?.Name ?? Loc.Format("MainForm.Tree.EventFallback", ev.Id);
 
-                var eventNode = new TreeNode($"{eventName} ({ev.EventID})")
+                var eventNode = new TreeNode(Loc.Format("MainForm.Tree.EventNode", eventName, ev.EventID))
                 {
                     Tag = new NodeTag
                     {
@@ -793,7 +905,7 @@ namespace StarFoxZeroLocalizationTool
                 for (var pIdx = 0; pIdx < ev.Paragraphs.Count; pIdx++)
                 {
                     var paragraph = ev.Paragraphs[pIdx];
-                    var paragraphNode = new TreeNode($"Paragrafo {paragraph.Id}")
+                    var paragraphNode = new TreeNode(Loc.Format("MainForm.Tree.ParagraphNode", paragraph.Id))
                     {
                         Tag = new NodeTag
                         {
@@ -832,19 +944,19 @@ namespace StarFoxZeroLocalizationTool
                 eventTreeView.Nodes[0].Expand();
             }
 
-            navigationSummaryLabel.Text = $"Eventos: {_currentMcd.Events.Count}  |  Strings: {totalStrings}";
+            navigationSummaryLabel.Text = Loc.Format("MainForm.Tree.Summary", _currentMcd.Events.Count, totalStrings);
             eventTreeView.EndUpdate();
         }
 
         private static string BuildStringNodeText(int stringIndex, string text)
         {
-            var preview = string.IsNullOrWhiteSpace(text) ? "(vazio)" : text.Trim();
+            var preview = string.IsNullOrWhiteSpace(text) ? Loc.Get("MainForm.Tree.EmptyString") : text.Trim();
             if (preview.Length > 36)
             {
                 preview = preview[..36] + "...";
             }
 
-            return $"String {stringIndex}: {preview}";
+            return Loc.Format("MainForm.Tree.StringNode", stringIndex, preview);
         }
 
         private void TrySelectFirstStringNode()
@@ -874,8 +986,8 @@ namespace StarFoxZeroLocalizationTool
                 textTextBox.Enabled = false;
                 _suppressEditorEvents = false;
 
-                selectedEntryLabel.Text = "Nenhuma string selecionada";
-                UpdateEditorHelper("Selecione uma string para editar o texto.", InfoColor);
+                selectedEntryLabel.Text = Loc.Get("MainForm.Init.NoStringSelected");
+                UpdateEditorHelper(Loc.Get("MainForm.EditorHint.SelectStringToEdit"), InfoColor);
                 UpdateEditorPreview();
                 validationErrorProvider.SetError(textTextBox, string.Empty);
                 return;
@@ -891,10 +1003,10 @@ namespace StarFoxZeroLocalizationTool
             _suppressEditorEvents = false;
 
             selectedEntryLabel.Text =
-                $"Evento {tag.EventIndex}  |  Paragrafo {tag.ParagraphIndex}  |  String {tag.StringIndex}  |  LanguageFlags {FormatLanguageFlagsReadable(paragraph.LanguageFlags)}";
+                Loc.Format("MainForm.Selection.SelectedEntry", tag.EventIndex, tag.ParagraphIndex, tag.StringIndex, FormatLanguageFlagsReadable(paragraph.LanguageFlags));
             ValidateEditorText(entry.Text);
             UpdateEditorPreview();
-            statusToolStripStatusLabel.Text = "String selecionada para edicao.";
+            statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.StringSelected");
         }
 
         private void TextTextBox_TextChanged(object? sender, EventArgs e)
@@ -933,13 +1045,13 @@ namespace StarFoxZeroLocalizationTool
             if (missingChars.Count == 0)
             {
                 validationErrorProvider.SetError(textTextBox, string.Empty);
-                UpdateEditorHelper("Todos os caracteres existem no charset/texturas.", SuccessColor);
+                UpdateEditorHelper(Loc.Get("MainForm.EditorHint.AllCharactersAvailable"), SuccessColor);
                 return;
             }
 
-            validationErrorProvider.SetError(textTextBox, "Existem caracteres que nao estao disponiveis no charset.");
+            validationErrorProvider.SetError(textTextBox, Loc.Get("MainForm.Validation.CharactersMissing"));
             UpdateEditorHelper(
-                $"Caracteres ausentes no charset/texturas: {string.Join(", ", missingChars)}",
+                Loc.Format("MainForm.EditorHint.CharactersMissing", string.Join(", ", missingChars)),
                 WarningColor);
         }
 
@@ -1000,8 +1112,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 if (showError)
                 {
-                    validationErrorProvider.SetError(remapSourceComboBox, "Selecione um caractere existente do charset.");
-                    UpdateRemapHelper("Escolha um caractere existente para remapear.", WarningColor);
+                    validationErrorProvider.SetError(remapSourceComboBox, Loc.Get("MainForm.Validation.SelectExistingCharacter"));
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.ChooseExistingCharacter"), WarningColor);
                 }
 
                 applyCharRemapButton.Enabled = false;
@@ -1012,8 +1124,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 if (showError)
                 {
-                    validationErrorProvider.SetError(remapTargetTextBox, "Informe exatamente um caractere.");
-                    UpdateRemapHelper("Digite exatamente um unico caractere de destino, como 'Ã§'.", WarningColor);
+                    validationErrorProvider.SetError(remapTargetTextBox, Loc.Get("MainForm.Validation.ExactlyOneCharacter"));
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.TypeSingleCharacter"), WarningColor);
                 }
 
                 applyCharRemapButton.Enabled = false;
@@ -1024,8 +1136,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 if (showError)
                 {
-                    validationErrorProvider.SetError(remapTargetTextBox, "O novo caractere precisa ser diferente do atual.");
-                    UpdateRemapHelper("Escolha um caractere diferente do existente para aplicar o remapeamento.", WarningColor);
+                    validationErrorProvider.SetError(remapTargetTextBox, Loc.Get("MainForm.Validation.CharacterMustDiffer"));
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.CharacterMustDiffer"), WarningColor);
                 }
 
                 applyCharRemapButton.Enabled = false;
@@ -1034,7 +1146,7 @@ namespace StarFoxZeroLocalizationTool
 
             applyCharRemapButton.Enabled = true;
             UpdateRemapHelper(
-                $"A variante {sourceOption.VariantIndex}/{sourceOption.VariantsCount} de '{sourceOption.Value}' (ID {sourceOption.CharId}, U+{sourceOption.CharCode:X4}) sera remapeada para '{targetValue}'.",
+                Loc.Format("MainForm.RemapHint.PendingRemap", sourceOption.VariantIndex, sourceOption.VariantsCount, sourceOption.Value, sourceOption.CharId, sourceOption.CharCode, targetValue),
                 InfoColor);
             return true;
         }
@@ -1048,12 +1160,12 @@ namespace StarFoxZeroLocalizationTool
         private string BuildCharsetValidationReport(McdIO.CharsetValidationResult validation)
         {
             var builder = new StringBuilder();
-            builder.AppendLine("RELATORIO DE CHARSET / LANGUAGEFLAGS");
+            builder.AppendLine(Loc.Get("MainForm.Report.Header"));
             builder.AppendLine();
-            builder.AppendLine($"Strings analisadas: {validation.TotalStringsChecked}");
-            builder.AppendLine($"Strings com problema: {validation.AffectedStringsCount}");
-            builder.AppendLine($"Caracteres sem cadastro: {validation.MissingCharacterCount}");
-            builder.AppendLine($"Caracteres sem variante no LanguageFlags correto: {validation.LanguageFlagsMismatchCount}");
+            builder.AppendLine(Loc.Format("MainForm.Report.TotalStrings", validation.TotalStringsChecked));
+            builder.AppendLine(Loc.Format("MainForm.Report.AffectedStrings", validation.AffectedStringsCount));
+            builder.AppendLine(Loc.Format("MainForm.Report.MissingCharacters", validation.MissingCharacterCount));
+            builder.AppendLine(Loc.Format("MainForm.Report.LanguageFlagMismatch", validation.LanguageFlagsMismatchCount));
             builder.AppendLine();
 
             foreach (var issue in validation.Issues
@@ -1063,18 +1175,18 @@ namespace StarFoxZeroLocalizationTool
                          .ThenBy(x => x.Character, StringComparer.Ordinal))
             {
                 builder.AppendLine(issue.Kind == McdIO.CharsetValidationIssueKind.MissingCharacter
-                    ? "[Sem cadastro no charset]"
-                    : "[Sem variante no LanguageFlags do paragrafo]");
-                builder.AppendLine($"Evento: {issue.EventName} ({issue.EventId})");
-                builder.AppendLine($"Indices: Evento {issue.EventIndex} | Paragrafo {issue.ParagraphIndex} | String {issue.StringIndex}");
-                builder.AppendLine($"LanguageFlags do paragrafo: {FormatLanguageFlagsReadable(issue.ParagraphLanguageFlags)}");
-                builder.AppendLine($"Caractere: '{issue.Character}'");
+                    ? Loc.Get("MainForm.Report.IssueMissingCharset")
+                    : Loc.Get("MainForm.Report.IssueMissingLanguageFlagVariant"));
+                builder.AppendLine(Loc.Format("MainForm.Report.EventLine", issue.EventName, issue.EventId));
+                builder.AppendLine(Loc.Format("MainForm.Report.IndicesLine", issue.EventIndex, issue.ParagraphIndex, issue.StringIndex));
+                builder.AppendLine(Loc.Format("MainForm.Report.ParagraphLanguageFlags", FormatLanguageFlagsReadable(issue.ParagraphLanguageFlags)));
+                builder.AppendLine(Loc.Format("MainForm.Report.CharacterLine", issue.Character));
                 if (!string.IsNullOrWhiteSpace(issue.AvailableLanguageFlagsSummary))
                 {
-                    builder.AppendLine($"Disponivel no charset: {issue.AvailableLanguageFlagsSummary}");
+                    builder.AppendLine(Loc.Format("MainForm.Report.AvailableInCharset", issue.AvailableLanguageFlagsSummary));
                 }
 
-                builder.AppendLine($"Texto: {issue.StringText}");
+                builder.AppendLine(Loc.Format("MainForm.Report.TextLine", issue.StringText));
                 builder.AppendLine(new string('-', 90));
             }
 
@@ -1106,7 +1218,7 @@ namespace StarFoxZeroLocalizationTool
 
             var copyButton = new Button
             {
-                Text = "Copiar relatorio",
+                Text = Loc.Get("Common.CopyReport"),
                 AutoSize = true,
                 BackColor = Color.FromArgb(37, 99, 235),
                 ForeColor = Color.White,
@@ -1119,15 +1231,15 @@ namespace StarFoxZeroLocalizationTool
                 Clipboard.SetText(reportTextBox.Text);
                 MessageBox.Show(
                     dialog,
-                    "Relatorio copiado para a area de transferencia.",
-                    "Copiar relatorio",
+                    Loc.Get("Common.CopyReportSuccess"),
+                    Loc.Get("Common.Dialog.ReportCopyTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
             };
 
             var closeButton = new Button
             {
-                Text = "Fechar",
+                Text = Loc.Get("Common.CloseButton"),
                 AutoSize = true,
                 Margin = new Padding(8)
             };
@@ -1192,18 +1304,25 @@ namespace StarFoxZeroLocalizationTool
 
         private string BuildEditorPreviewInfoText(Paragraph paragraph, StringEntry entry)
         {
-            var info =
-                $"Linha azul = baseline | Paragraph Below {paragraph.BelowSpacing:0.##} | String Below {entry.BelowSpacing:0.##} | String Horizontal {entry.HorizontalSpacing:0.##}";
+            var info = Loc.Format(
+                "MainForm.EditorPreview.Info",
+                paragraph.BelowSpacing,
+                entry.BelowSpacing,
+                entry.HorizontalSpacing);
 
             if (TryGetSelectedTextureGraph(out var selectedEntry, out var selectedGraph))
             {
-                info +=
-                    $" | Variante atual '{selectedEntry.Char}' ID {selectedEntry.Id}: Below {selectedGraph.BelowSpacing:0.##}, U_A {selectedGraph.Ua:0.##}";
+                info += Loc.Format(
+                    "MainForm.EditorPreview.CurrentVariantInfo",
+                    selectedEntry.Char,
+                    selectedEntry.Id,
+                    selectedGraph.BelowSpacing,
+                    selectedGraph.Ua);
 
                 if (_newGlyphSelectionRect is Rectangle selectionRect && _currentAtlasBitmap != null &&
                     string.Equals(_currentPreviewTextureId, selectedGraph.TextureID, StringComparison.OrdinalIgnoreCase))
                 {
-                    info += $" | Previa usando selecao {selectionRect.Width}x{selectionRect.Height}";
+                    info += Loc.Format("MainForm.EditorPreview.SelectionOverride", selectionRect.Width, selectionRect.Height);
                 }
             }
 
@@ -1247,8 +1366,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 if (showError)
                 {
-                    validationErrorProvider.SetError(remapLanguageTargetTextBox, "Informe um LanguageFlags valido em decimal ou 0x hexadecimal.");
-                    UpdateRemapHelper("Informe o novo LanguageFlags em decimal ou hexadecimal. Ex.: 12 ou 0x000C.", WarningColor);
+                    validationErrorProvider.SetError(remapLanguageTargetTextBox, Loc.Get("MainForm.Validation.InvalidLanguageFlags"));
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.TypeLanguageFlags"), WarningColor);
                 }
 
                 applyLanguageFlagsButton.Enabled = false;
@@ -1266,8 +1385,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 if (showError)
                 {
-                    validationErrorProvider.SetError(remapLanguageTargetTextBox, "Informe um valor diferente do LanguageFlags atual.");
-                    UpdateRemapHelper("Digite um LanguageFlags diferente do atual para aplicar a alteracao.", WarningColor);
+                    validationErrorProvider.SetError(remapLanguageTargetTextBox, Loc.Get("MainForm.Validation.LanguageFlagsMustDiffer"));
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.LanguageFlagsMustDiffer"), WarningColor);
                 }
                 else
                 {
@@ -1281,7 +1400,7 @@ namespace StarFoxZeroLocalizationTool
             validationErrorProvider.SetError(remapLanguageTargetTextBox, string.Empty);
             applyLanguageFlagsButton.Enabled = true;
             UpdateRemapHelper(
-                $"Novo LanguageFlags preparado: {FormatLanguageFlagsReadable(currentEntry.LanguageFlags)} -> {FormatLanguageFlagsReadable(parsedValue)}.",
+                Loc.Format("MainForm.RemapHint.PendingLanguageFlags", FormatLanguageFlagsReadable(currentEntry.LanguageFlags), FormatLanguageFlagsReadable(parsedValue)),
                 InfoColor);
             return true;
         }
@@ -1295,23 +1414,23 @@ namespace StarFoxZeroLocalizationTool
 
             if (remapSourceComboBox.SelectedItem is not CharRemapOption sourceOption)
             {
-                UpdateRemapHelper("Selecione uma variante valida antes de alterar o LanguageFlags.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao alterar LanguageFlags.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.SelectValidVariantForLanguageFlags"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.LanguageFlagsFailed");
                 return;
             }
 
             if (!TryParseLanguageFlags(remapLanguageTargetTextBox.Text.Trim(), out var newLanguageFlags))
             {
-                UpdateRemapHelper("Nao foi possivel interpretar o LanguageFlags informado.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao alterar LanguageFlags.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.InvalidLanguageFlagsInput"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.LanguageFlagsFailed");
                 return;
             }
 
             var affectedEntry = _currentMcd.Chars.FirstOrDefault(x => x.Id == sourceOption.CharId);
             if (affectedEntry == null)
             {
-                UpdateRemapHelper("Nenhuma variante do charset foi encontrada para alterar o LanguageFlags.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao alterar LanguageFlags.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.NoVariantFoundForLanguageFlags"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.LanguageFlagsFailed");
                 return;
             }
 
@@ -1322,10 +1441,10 @@ namespace StarFoxZeroLocalizationTool
             ValidateLanguageFlagsInput(showError: false);
 
             UpdateRemapHelper(
-                $"LanguageFlags da variante ID {sourceOption.CharId} atualizado para {FormatLanguageFlagsReadable(newLanguageFlags)}.",
+                Loc.Format("MainForm.RemapHint.LanguageFlagsApplied", sourceOption.CharId, FormatLanguageFlagsReadable(newLanguageFlags)),
                 SuccessColor);
             UpdateEditorPreview();
-            statusToolStripStatusLabel.Text = $"LanguageFlags alterado na variante ID {sourceOption.CharId}.";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.LanguageFlagsApplied", sourceOption.CharId);
         }
 
         private void RemoveCharacterButton_Click(object? sender, EventArgs e)
@@ -1337,16 +1456,16 @@ namespace StarFoxZeroLocalizationTool
 
             if (remapSourceComboBox.SelectedItem is not CharRemapOption sourceOption)
             {
-                UpdateRemapHelper("Selecione uma variante valida antes de remover um caractere.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao remover caractere.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.SelectValidVariantToRemove"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.RemoveCharacterFailed");
                 return;
             }
 
             var entry = _currentMcd.Chars.FirstOrDefault(x => x.Id == sourceOption.CharId);
             if (entry == null)
             {
-                UpdateRemapHelper("Nao foi possivel localizar a variante selecionada para remocao.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao remover caractere.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.CouldNotFindVariantToRemove"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.RemoveCharacterFailed");
                 return;
             }
 
@@ -1355,22 +1474,18 @@ namespace StarFoxZeroLocalizationTool
             {
                 MessageBox.Show(
                     this,
-                    $"A variante ID {entry.Id} ainda esta sendo usada em {usageCount} letra(s) nas strings.{Environment.NewLine}Remapeie ou substitua esse caractere antes de remove-lo.",
-                    "Remover caractere",
+                    Loc.Format("MainForm.Dialog.RemoveCharacterInUse", entry.Id, usageCount, Environment.NewLine),
+                    Loc.Get("MainForm.Dialog.RemoveCharacterCaption"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
-                statusToolStripStatusLabel.Text = "Remocao bloqueada: caractere ainda em uso.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.RemoveCharacterBlocked");
                 return;
             }
 
             var confirmation = MessageBox.Show(
                 this,
-                $"Deseja remover a variante selecionada?{Environment.NewLine}{Environment.NewLine}" +
-                $"Caractere: '{entry.Char}'{Environment.NewLine}" +
-                $"ID: {entry.Id}{Environment.NewLine}" +
-                $"Graph: {entry.Index}{Environment.NewLine}" +
-                $"LanguageFlags: {FormatLanguageFlagsReadable(entry.LanguageFlags)}",
-                "Confirmar remocao",
+                Loc.Format("MainForm.Dialog.ConfirmRemovalMessage", Environment.NewLine, entry.Char, entry.Id, entry.Index, FormatLanguageFlagsReadable(entry.LanguageFlags)),
+                Loc.Get("MainForm.Dialog.ConfirmRemovalTitle"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
@@ -1431,11 +1546,14 @@ namespace StarFoxZeroLocalizationTool
             ValidateNewCharacterInput(showError: false);
 
             UpdateRemapHelper(
-                $"Variante removida com sucesso: '{sourceOption.Value}' (ID {removedCharId})." +
-                (graphStillUsed ? string.Empty : $" Graph {removedGraphId} tambem removido."),
+                Loc.Format(
+                    "MainForm.RemapHint.CharacterRemoved",
+                    sourceOption.Value,
+                    removedCharId,
+                    graphStillUsed ? string.Empty : Loc.Format("MainForm.RemapHint.CharacterRemovedGraphSuffix", removedGraphId)),
                 SuccessColor);
             UpdateEditorPreview();
-            statusToolStripStatusLabel.Text = $"Caractere removido: ID {removedCharId}.";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.CharacterRemoved", removedCharId);
         }
 
         private void SelectNewGlyphButton_Click(object? sender, EventArgs e)
@@ -1447,8 +1565,8 @@ namespace StarFoxZeroLocalizationTool
 
             if (_currentAtlasBitmap == null || string.IsNullOrWhiteSpace(_currentPreviewTextureId))
             {
-                UpdateRemapHelper("A atlas real precisa estar carregada para selecionar um novo glifo.", WarningColor);
-                statusToolStripStatusLabel.Text = "Selecao de glifo indisponivel sem atlas real.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.AtlasRequiredForGlyphSelection"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.GlyphSelectionUnavailable");
                 return;
             }
 
@@ -1468,7 +1586,7 @@ namespace StarFoxZeroLocalizationTool
 
             if (!ValidateNewCharacterInput(showError: true))
             {
-                statusToolStripStatusLabel.Text = "Falha ao cadastrar novo caractere.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.NewCharacterFailed");
                 return;
             }
 
@@ -1478,8 +1596,8 @@ namespace StarFoxZeroLocalizationTool
                 !TryGetSelectedTextureGraph(out var baseEntry, out var baseGraph) ||
                 _currentAtlasBitmap == null)
             {
-                UpdateRemapHelper("Nao foi possivel montar os dados do novo caractere.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao cadastrar novo caractere.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.CouldNotBuildNewCharacter"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.NewCharacterFailed");
                 return;
             }
 
@@ -1488,8 +1606,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 var confirmation = MessageBox.Show(
                     this,
-                    $"Ja existe pelo menos uma entrada para '{newCharacter}' com LanguageFlags {languageFlags}.{Environment.NewLine}Deseja continuar mesmo assim?",
-                    "Cadastrar caractere",
+                    Loc.Format("MainForm.Dialog.DuplicateCharacterMessage", newCharacter, languageFlags, Environment.NewLine),
+                    Loc.Get("MainForm.Dialog.RegisterCharacterTitle"),
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Warning);
 
@@ -1542,10 +1660,10 @@ namespace StarFoxZeroLocalizationTool
             UpdateRemapTexturePreview(remapSourceComboBox.SelectedItem as CharRemapOption);
 
             UpdateRemapHelper(
-                $"Novo caractere '{newCharacter}' cadastrado com ID {newCharId}, graph {newGraphId} e TextureID {baseGraph.TextureID}.",
+                Loc.Format("MainForm.RemapHint.NewCharacterCreated", newCharacter, newCharId, newGraphId, baseGraph.TextureID),
                 SuccessColor);
             UpdateEditorPreview();
-            statusToolStripStatusLabel.Text = $"Novo caractere cadastrado: '{newCharacter}' (ID {newCharId}).";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.NewCharacterCreated", newCharacter, newCharId);
         }
 
         private void UpdateSelectedGlyphButton_Click(object? sender, EventArgs e)
@@ -1557,7 +1675,7 @@ namespace StarFoxZeroLocalizationTool
 
             if (!ValidateSelectedGlyphUpdate(showError: true))
             {
-                statusToolStripStatusLabel.Text = "Falha ao atualizar o glifo da variante.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.UpdateGlyphFailed");
                 return;
             }
 
@@ -1565,8 +1683,8 @@ namespace StarFoxZeroLocalizationTool
                 !TryGetSelectedTextureGraph(out var entry, out var graph) ||
                 _currentAtlasBitmap == null)
             {
-                UpdateRemapHelper("Nao foi possivel obter os dados necessarios para atualizar o glifo atual.", WarningColor);
-                statusToolStripStatusLabel.Text = "Falha ao atualizar o glifo da variante.";
+                UpdateRemapHelper(Loc.Get("MainForm.RemapHint.CouldNotPrepareGlyphUpdate"), WarningColor);
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.UpdateGlyphFailed");
                 return;
             }
 
@@ -1618,11 +1736,11 @@ namespace StarFoxZeroLocalizationTool
 
             UpdateRemapHelper(
                 createdNewGraph
-                    ? $"Glifo da variante ID {entry.Id} atualizado com nova area da atlas. Como o graph antigo era compartilhado, foi criado o graph {targetGraph.Id} so para essa variante."
-                    : $"Glifo da variante ID {entry.Id} atualizado com a nova selecao da atlas.",
+                    ? Loc.Format("MainForm.RemapHint.GlyphUpdatedWithNewGraph", entry.Id, targetGraph.Id)
+                    : Loc.Format("MainForm.RemapHint.GlyphUpdated", entry.Id),
                 SuccessColor);
             UpdateEditorPreview();
-            statusToolStripStatusLabel.Text = $"Glifo atualizado na variante ID {entry.Id}.";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.GlyphUpdated", entry.Id);
         }
 
         private void UpdateRemapTexturePreview(CharRemapOption? option)
@@ -1634,7 +1752,7 @@ namespace StarFoxZeroLocalizationTool
                     ReplaceCurrentAtlasBitmap(null, null);
                     ReplaceRemapTexturePreviewImage(null);
                     ReplaceRemapGlyphZoomImage(null);
-                    remapTexturePreviewLabel.Text = "A posicao da letra na textura aparecera aqui.";
+                    remapTexturePreviewLabel.Text = Loc.Get("MainForm.TexturePreview.Empty");
                     remapTexturePreviewLabel.ForeColor = InfoColor;
                     UpdateNewCharacterSelectionInfo();
                     return;
@@ -1650,7 +1768,7 @@ namespace StarFoxZeroLocalizationTool
                     ReplaceCurrentAtlasBitmap(null, null);
                     ReplaceRemapTexturePreviewImage(null);
                     ReplaceRemapGlyphZoomImage(null);
-                    remapTexturePreviewLabel.Text = "Nao foi possivel localizar a area dessa letra na textura.";
+                    remapTexturePreviewLabel.Text = Loc.Get("MainForm.TexturePreview.NotFound");
                     remapTexturePreviewLabel.ForeColor = WarningColor;
                     UpdateNewCharacterSelectionInfo();
                     return;
@@ -1667,12 +1785,21 @@ namespace StarFoxZeroLocalizationTool
                         ReplaceRemapTexturePreviewImage(CreateTextureAtlasOverlayBitmap(atlasBitmap, glyphRect, selectionRect));
                         ReplaceRemapGlyphZoomImage(CreateGlyphZoomBitmap(atlasBitmap, selectionRect ?? glyphRect));
 
-                        remapTexturePreviewLabel.Text =
-                            $"TextureID: {graph.TextureID}  |  Atlas real carregada{Environment.NewLine}" +
-                            $"Arquivos carregados: {Path.GetFileName(atlasInfo!.WtaPath)} + {Path.GetFileName(atlasInfo.WtpPath)}{Environment.NewLine}" +
-                            $"Area UV: U {graph.U1:0.0000} -> {graph.U2:0.0000} | V {graph.V1:0.0000} -> {graph.V2:0.0000}{Environment.NewLine}" +
-                            $"Area em pixels: X {glyphRect.X}, Y {glyphRect.Y},Tamanho: L {glyphRect.Width}, A {glyphRect.Height}{Environment.NewLine}" +
-                            $"Indice do graph no charset: {entry.Index}{Environment.NewLine}";
+                        remapTexturePreviewLabel.Text = Loc.Format(
+                            "MainForm.TexturePreview.Loaded",
+                            graph.TextureID,
+                            Environment.NewLine,
+                            Path.GetFileName(atlasInfo!.WtaPath),
+                            Path.GetFileName(atlasInfo.WtpPath),
+                            graph.U1,
+                            graph.U2,
+                            graph.V1,
+                            graph.V2,
+                            glyphRect.X,
+                            glyphRect.Y,
+                            glyphRect.Width,
+                            glyphRect.Height,
+                            entry.Index);
                     }
 
                     remapTexturePreviewLabel.ForeColor = InfoColor;
@@ -1685,13 +1812,18 @@ namespace StarFoxZeroLocalizationTool
                 ReplaceRemapGlyphZoomImage(null);
                 var fallbackWidthNorm = Math.Max(0f, graph.U2 - graph.U1);
                 var fallbackHeightNorm = Math.Max(0f, graph.V2 - graph.V1);
-                remapTexturePreviewLabel.Text =
-                    $"TextureID: {graph.TextureID}{Environment.NewLine}" +
-                    $"Nao foi possivel carregar a atlas real: {atlasError}{Environment.NewLine}" +
-                    $"Area UV: U {graph.U1:0.0000} -> {graph.U2:0.0000} | V {graph.V1:0.0000} -> {graph.V2:0.0000}{Environment.NewLine}" +
-                    $"Tamanho normalizado: {fallbackWidthNorm:0.0000} x {fallbackHeightNorm:0.0000}{Environment.NewLine}" +
-                    $"Indice do graph no charset: {entry.Index}{Environment.NewLine}" +
-                    $"A atlas real nao foi carregada.";
+                remapTexturePreviewLabel.Text = Loc.Format(
+                    "MainForm.TexturePreview.Fallback",
+                    graph.TextureID,
+                    Environment.NewLine,
+                    atlasError,
+                    graph.U1,
+                    graph.U2,
+                    graph.V1,
+                    graph.V2,
+                    fallbackWidthNorm,
+                    fallbackHeightNorm,
+                    entry.Index);
                 remapTexturePreviewLabel.ForeColor = WarningColor;
                 UpdateNewCharacterSelectionInfo();
             }
@@ -1701,7 +1833,7 @@ namespace StarFoxZeroLocalizationTool
                 ReplaceRemapTexturePreviewImage(null);
                 ReplaceRemapGlyphZoomImage(null);
                 remapTexturePreviewLabel.Text =
-                    $"Falha ao montar a pre-visualizacao da textura.{Environment.NewLine}{ex.Message}";
+                    Loc.Format("MainForm.TexturePreview.Error", Environment.NewLine, ex.Message);
                 remapTexturePreviewLabel.ForeColor = WarningColor;
                 UpdateNewCharacterSelectionInfo();
             }
@@ -1734,8 +1866,8 @@ namespace StarFoxZeroLocalizationTool
         {
             if (_currentMcd == null)
             {
-                newCharacterSelectionLabel.Text = "Selecao do glifo: Escolha uma variante para atualizar ou usar como base.";
-                selectNewGlyphButton.Text = "Selecionar glifo";
+                newCharacterSelectionLabel.Text = Loc.Get("MainForm.Selection.NoVariantChosen");
+                selectNewGlyphButton.Text = Loc.Get("MainForm.Selection.SelectGlyphButton");
                 updateSelectedGlyphButton.Enabled = false;
                 UpdateSelectionAdjustButtonsState();
                 return;
@@ -1743,8 +1875,8 @@ namespace StarFoxZeroLocalizationTool
 
             if (_currentAtlasBitmap == null || string.IsNullOrWhiteSpace(_currentPreviewTextureId))
             {
-                newCharacterSelectionLabel.Text = "Selecao do glifo: a atlas real precisa estar carregada para marcar a area.";
-                selectNewGlyphButton.Text = "Selecionar glifo";
+                newCharacterSelectionLabel.Text = Loc.Get("MainForm.Selection.AtlasRequired");
+                selectNewGlyphButton.Text = Loc.Get("MainForm.Selection.SelectGlyphButton");
                 updateSelectedGlyphButton.Enabled = false;
                 UpdateSelectionAdjustButtonsState();
                 return;
@@ -1756,21 +1888,31 @@ namespace StarFoxZeroLocalizationTool
                 var v1 = (float)rect.Top / _currentAtlasBitmap.Height;
                 var u2 = (float)rect.Right / _currentAtlasBitmap.Width;
                 var v2 = (float)rect.Bottom / _currentAtlasBitmap.Height;
-                var suffix = _newGlyphSelectionMode ? " | modo de selecao ativo" : string.Empty;
-                newCharacterSelectionLabel.Text =
-                    $"Selecao do glifo: X {rect.X}, Y {rect.Y}, L {rect.Width}, A {rect.Height} | " +
-                    $"UV {u1:0.0000},{v1:0.0000} -> {u2:0.0000},{v2:0.0000}{suffix}";
+                var suffix = _newGlyphSelectionMode ? Loc.Get("MainForm.Selection.ActiveModeSuffix") : string.Empty;
+                newCharacterSelectionLabel.Text = Loc.Format(
+                    "MainForm.Selection.ActiveArea",
+                    rect.X,
+                    rect.Y,
+                    rect.Width,
+                    rect.Height,
+                    u1,
+                    v1,
+                    u2,
+                    v2,
+                    suffix);
             }
             else if (_newGlyphSelectionMode)
             {
-                newCharacterSelectionLabel.Text = "Selecao do glifo: arraste com o botao esquerdo sobre a atlas da esquerda para marcar a area que sera usada.";
+                newCharacterSelectionLabel.Text = Loc.Get("MainForm.Selection.DragToMark");
             }
             else
             {
-                newCharacterSelectionLabel.Text = "Selecao do glifo: clique em 'Selecionar glifo' e arraste na atlas para atualizar o glifo atual ou cadastrar um novo caractere.";
+                newCharacterSelectionLabel.Text = Loc.Get("MainForm.Selection.ClickAndDrag");
             }
 
-            selectNewGlyphButton.Text = _newGlyphSelectionMode ? "Selecionando..." : "Selecionar glifo";
+            selectNewGlyphButton.Text = _newGlyphSelectionMode
+                ? Loc.Get("MainForm.Selection.SelectingGlyphButton")
+                : Loc.Get("MainForm.Selection.SelectGlyphButton");
             updateSelectedGlyphButton.Enabled = CanUpdateSelectedGlyph();
             UpdateSelectionAdjustButtonsState();
         }
@@ -1793,7 +1935,7 @@ namespace StarFoxZeroLocalizationTool
                 createNewCharacterButton.Enabled = false;
                 if (showError)
                 {
-                    UpdateRemapHelper("Selecione uma variante valida para usar como base do novo caractere.", WarningColor);
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.SelectBaseVariant"), WarningColor);
                 }
 
                 return false;
@@ -1804,8 +1946,8 @@ namespace StarFoxZeroLocalizationTool
                 createNewCharacterButton.Enabled = false;
                 if (showError)
                 {
-                    validationErrorProvider.SetError(newCharacterTextBox, "Informe exatamente um caractere.");
-                    UpdateRemapHelper("Digite exatamente um unico caractere para cadastrar.", WarningColor);
+                    validationErrorProvider.SetError(newCharacterTextBox, Loc.Get("MainForm.Validation.ExactlyOneCharacter"));
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.TypeSingleCharacterForNewEntry"), WarningColor);
                 }
 
                 return false;
@@ -1821,8 +1963,8 @@ namespace StarFoxZeroLocalizationTool
                 createNewCharacterButton.Enabled = false;
                 if (showError)
                 {
-                    validationErrorProvider.SetError(newCharacterLanguageTextBox, "Informe um LanguageFlags valido em decimal ou 0x hexadecimal.");
-                    UpdateRemapHelper("Informe o LanguageFlags do novo caractere em decimal ou hexadecimal.", WarningColor);
+                    validationErrorProvider.SetError(newCharacterLanguageTextBox, Loc.Get("MainForm.Validation.NewCharacterLanguageFlags"));
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.NewCharacterLanguageFlags"), WarningColor);
                 }
 
                 return false;
@@ -1833,7 +1975,7 @@ namespace StarFoxZeroLocalizationTool
                 createNewCharacterButton.Enabled = false;
                 if (showError)
                 {
-                    UpdateRemapHelper("A atlas real precisa estar carregada para cadastrar o novo caractere.", WarningColor);
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.AtlasRequiredForNewCharacter"), WarningColor);
                 }
 
                 return false;
@@ -1844,7 +1986,7 @@ namespace StarFoxZeroLocalizationTool
                 createNewCharacterButton.Enabled = false;
                 if (showError)
                 {
-                    UpdateRemapHelper("Marque na atlas a area livre onde o novo glifo foi desenhado.", WarningColor);
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.SelectFreeArea"), WarningColor);
                 }
 
                 return false;
@@ -1852,8 +1994,7 @@ namespace StarFoxZeroLocalizationTool
 
             createNewCharacterButton.Enabled = true;
             UpdateRemapHelper(
-                $"Novo caractere pronto: '{newCharacter}' | LanguageFlags {FormatLanguageFlagsReadable(languageFlags)} | " +
-                $"Base '{baseEntry.Char}' (TextureID {baseGraph.TextureID}) | area {selectionRect.Width}x{selectionRect.Height}.",
+                Loc.Format("MainForm.RemapHint.NewCharacterReady", newCharacter, FormatLanguageFlagsReadable(languageFlags), baseEntry.Char, baseGraph.TextureID, selectionRect.Width, selectionRect.Height),
                 InfoColor);
             return true;
         }
@@ -1871,7 +2012,7 @@ namespace StarFoxZeroLocalizationTool
                 updateSelectedGlyphButton.Enabled = false;
                 if (showError)
                 {
-                    UpdateRemapHelper("A atlas real precisa estar carregada para atualizar o glifo da variante selecionada.", WarningColor);
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.AtlasRequiredForGlyphUpdate"), WarningColor);
                 }
 
                 return false;
@@ -1882,7 +2023,7 @@ namespace StarFoxZeroLocalizationTool
                 updateSelectedGlyphButton.Enabled = false;
                 if (showError)
                 {
-                    UpdateRemapHelper("Marque uma area na atlas para substituir o glifo da variante selecionada.", WarningColor);
+                    UpdateRemapHelper(Loc.Get("MainForm.RemapHint.SelectAreaForGlyphUpdate"), WarningColor);
                 }
 
                 return false;
@@ -1892,7 +2033,7 @@ namespace StarFoxZeroLocalizationTool
             if (showError)
             {
                 UpdateRemapHelper(
-                    $"Atualizacao pronta para a variante ID {entry.Id}: graph {graph.Id} sera apontado para a area {selectionRect.Width}x{selectionRect.Height} selecionada na atlas.",
+                    Loc.Format("MainForm.RemapHint.GlyphUpdateReady", entry.Id, graph.Id, selectionRect.Width, selectionRect.Height),
                     InfoColor);
             }
 
@@ -1918,7 +2059,7 @@ namespace StarFoxZeroLocalizationTool
             {
                 if (showError)
                 {
-                    validationErrorProvider.SetError(selectionAdjustStepTextBox, "Informe um passo em pixels.");
+                    validationErrorProvider.SetError(selectionAdjustStepTextBox, Loc.Get("MainForm.Validation.SelectionStepRequired"));
                 }
 
                 return false;
@@ -1928,7 +2069,7 @@ namespace StarFoxZeroLocalizationTool
             {
                 if (showError)
                 {
-                    validationErrorProvider.SetError(selectionAdjustStepTextBox, "Use um numero inteiro positivo.");
+                    validationErrorProvider.SetError(selectionAdjustStepTextBox, Loc.Get("MainForm.Validation.SelectionStepPositiveInteger"));
                 }
 
                 return false;
@@ -2293,7 +2434,7 @@ namespace StarFoxZeroLocalizationTool
             var previewHeight = Math.Max(1, editorPreviewPictureBox.ClientSize.Height);
             var bitmap = new Bitmap(previewWidth, previewHeight);
             using var graphics = Graphics.FromImage(bitmap);
-            graphics.Clear(Color.White);
+            graphics.Clear(Color.Gainsboro);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
@@ -2511,21 +2652,21 @@ namespace StarFoxZeroLocalizationTool
             {
                 MessageBox.Show(
                     this,
-                    "Selecione uma variante com textura valida antes de exportar o DDS.",
-                    "Exportar DDS",
+                    Loc.Get("MainForm.Dialog.ExportDdsRequiresVariant"),
+                    Loc.Get("MainForm.Dialog.ExportDdsTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
                 return;
             }
 
             var suggestedName = string.IsNullOrWhiteSpace(_currentFilePath)
-                ? $"texture_{graph.TextureID}.dds"
-                : $"{Path.GetFileNameWithoutExtension(_currentFilePath)}_{graph.TextureID}.dds";
+                ? Loc.Format("MainForm.Dialog.DdsSuggestedNameFallback", graph.TextureID)
+                : Loc.Format("MainForm.Dialog.DdsSuggestedNameFromFile", Path.GetFileNameWithoutExtension(_currentFilePath), graph.TextureID);
 
             using var saveDialog = new SaveFileDialog
             {
-                Filter = "DDS Files (*.dds)|*.dds|All Files (*.*)|*.*",
-                Title = "Exportar textura selecionada para DDS",
+                Filter = Loc.Get("MainForm.Dialog.DdsFilter"),
+                Title = Loc.Get("MainForm.Dialog.ExportDdsPickerTitle"),
                 FileName = suggestedName
             };
 
@@ -2538,19 +2679,19 @@ namespace StarFoxZeroLocalizationTool
             {
                 MessageBox.Show(
                     this,
-                    $"Falha ao exportar o DDS.{Environment.NewLine}{error}",
-                    "Exportar DDS",
+                    Loc.Format("MainForm.Message.ExportDdsError", Environment.NewLine, error),
+                    Loc.Get("MainForm.Dialog.ExportDdsTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
-                statusToolStripStatusLabel.Text = "Falha ao exportar DDS da textura.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.ExportDdsFailed");
                 return;
             }
 
-            statusToolStripStatusLabel.Text = $"DDS exportado: {Path.GetFileName(saveDialog.FileName)}";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.ExportDdsSuccess", Path.GetFileName(saveDialog.FileName));
             MessageBox.Show(
                 this,
-                "Textura exportada com sucesso para DDS.",
-                "Exportar DDS",
+                Loc.Get("MainForm.Message.ExportDdsSuccess"),
+                Loc.Get("MainForm.Dialog.ExportDdsTitle"),
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -2571,8 +2712,8 @@ namespace StarFoxZeroLocalizationTool
             {
                 MessageBox.Show(
                     this,
-                    "Selecione uma variante com textura valida antes de reimportar o DDS.",
-                    "Reimportar DDS",
+                    Loc.Get("MainForm.Dialog.ImportDdsRequiresVariant"),
+                    Loc.Get("MainForm.Dialog.ImportDdsTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
                 return;
@@ -2580,8 +2721,8 @@ namespace StarFoxZeroLocalizationTool
 
             using var openDialog = new OpenFileDialog
             {
-                Filter = "DDS Files (*.dds)|*.dds|All Files (*.*)|*.*",
-                Title = "Selecionar DDS editado para reimportar"
+                Filter = Loc.Get("MainForm.Dialog.DdsFilter"),
+                Title = Loc.Get("MainForm.Dialog.ImportDdsPickerTitle")
             };
 
             if (openDialog.ShowDialog(this) != DialogResult.OK)
@@ -2591,8 +2732,8 @@ namespace StarFoxZeroLocalizationTool
 
             var confirmation = MessageBox.Show(
                 this,
-                $"O DDS sera reimportado na textura {graph.TextureID} ao lado do arquivo MCD atual.{Environment.NewLine}Isso sobrescreve o conteudo correspondente no WTP. Deseja continuar?",
-                "Reimportar DDS",
+                Loc.Format("MainForm.Dialog.ImportDdsConfirm", graph.TextureID, Environment.NewLine),
+                Loc.Get("MainForm.Dialog.ImportDdsTitle"),
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
@@ -2605,22 +2746,22 @@ namespace StarFoxZeroLocalizationTool
             {
                 MessageBox.Show(
                     this,
-                    $"Falha ao reimportar o DDS editado.{Environment.NewLine}{error}",
-                    "Reimportar DDS",
+                    Loc.Format("MainForm.Message.ImportDdsError", Environment.NewLine, error),
+                    Loc.Get("MainForm.Dialog.ImportDdsTitle"),
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
-                statusToolStripStatusLabel.Text = "Falha ao reimportar DDS da textura.";
+                statusToolStripStatusLabel.Text = Loc.Get("MainForm.Status.ImportDdsFailed");
                 return;
             }
 
             InvalidateEditorPreviewAtlas(graph.TextureID);
             UpdateRemapTexturePreview(remapSourceComboBox.SelectedItem as CharRemapOption);
             UpdateEditorPreview();
-            statusToolStripStatusLabel.Text = $"DDS reimportado para a textura {graph.TextureID}.";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.ImportDdsSuccess", graph.TextureID);
             MessageBox.Show(
                 this,
-                $"DDS reimportado com sucesso para a textura {graph.TextureID}.{Environment.NewLine}Variante atual: ID {entry.Id}.",
-                "Reimportar DDS",
+                Loc.Format("MainForm.Message.ImportDdsSuccess", graph.TextureID, Environment.NewLine, entry.Id),
+                Loc.Get("MainForm.Dialog.ImportDdsTitle"),
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
         }
@@ -2842,7 +2983,7 @@ namespace StarFoxZeroLocalizationTool
                 .ToArray();
 
             var bitsText = activeBits.Length == 0
-                ? "nenhum bit ativo"
+                ? Loc.Get("MainForm.LanguageFlags.NoneActive")
                 : string.Join(", ", activeBits);
 
             return $"0x{(uint)value:X8} ({value}) [{bitsText}]";
@@ -3074,9 +3215,9 @@ namespace StarFoxZeroLocalizationTool
             textTextBox.Select(match.Index, searchTextBox.Text.Trim().Length);
             textTextBox.ScrollToCaret();
 
-            statusToolStripStatusLabel.Text = $"Resultado {matchIndex + 1} de {_searchMatches.Count}.";
+            statusToolStripStatusLabel.Text = Loc.Format("MainForm.Status.ResultPosition", matchIndex + 1, _searchMatches.Count);
             UpdateSearchHelper(
-                $"Resultado {matchIndex + 1} de {_searchMatches.Count}. Use Proximo para navegar.",
+                Loc.Format("MainForm.SearchHint.ResultPosition", matchIndex + 1, _searchMatches.Count),
                 SuccessColor);
         }
 
@@ -3150,12 +3291,17 @@ namespace StarFoxZeroLocalizationTool
             {
                 var codeLabel = CharCode > 0
                     ? $"U+{CharCode:X4}"
-                    : "sem codigo";
+                    : Loc.Get("MainForm.CharRemapOption.NoCode");
 
                 var languageFlagsLabel = FormatLanguageFlagsReadable(LanguageFlags);
 
-                return $"{Value} | variante {VariantIndex}/{VariantsCount} | ID {CharId} | {codeLabel} | L.F {languageFlagsLabel}";
+                return Loc.Format("MainForm.CharRemapOption.Format", Value, VariantIndex, VariantsCount, CharId, codeLabel, languageFlagsLabel);
             }
+        }
+
+        private sealed record LanguageComboOption(string Code, string DisplayName)
+        {
+            public override string ToString() => DisplayName;
         }
     }
 

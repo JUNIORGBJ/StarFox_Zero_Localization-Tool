@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using StarFoxZeroLocalizationTool.Localization;
 
 namespace StarFoxZeroLocalizationTool.Services;
 
@@ -28,12 +29,12 @@ public sealed class DatArchiveService
     {
         if (!File.Exists(inputDatPath))
         {
-            throw new FileNotFoundException("Arquivo .dat não encontrado.", inputDatPath);
+            throw new FileNotFoundException(Loc.Get("DatArchiveService.Error.DatNotFound"), inputDatPath);
         }
 
         if (string.IsNullOrWhiteSpace(outputDirectory))
         {
-            throw new ArgumentException("Informe uma pasta de saída.");
+            throw new ArgumentException(Loc.Get("DatArchiveService.Error.OutputDirectoryRequired"));
         }
 
         Directory.CreateDirectory(outputDirectory);
@@ -70,13 +71,13 @@ public sealed class DatArchiveService
             var fileName = fileNames[i].Trim();
             if (string.IsNullOrWhiteSpace(fileName))
             {
-                throw new InvalidDataException("Um dos arquivos no .dat não possui nome válido.");
+                throw new InvalidDataException(Loc.Get("DatArchiveService.Error.InvalidEntryName"));
             }
 
             var extension = Path.GetExtension(fileName);
             if (string.IsNullOrWhiteSpace(extension))
             {
-                throw new InvalidDataException($"O arquivo '{fileName}' não possui extensão válida.");
+                throw new InvalidDataException(Loc.Format("DatArchiveService.Error.InvalidEntryExtension", fileName));
             }
 
             var targetPath = Path.Combine(outputDirectory, fileName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar));
@@ -150,7 +151,7 @@ public sealed class DatArchiveService
     {
         if (!Directory.Exists(inputDirectory))
         {
-            throw new DirectoryNotFoundException("Pasta de origem não encontrada.");
+            throw new DirectoryNotFoundException(Loc.Get("DatArchiveService.Error.SourceDirectoryNotFound"));
         }
 
         var metadataPath = Path.Combine(inputDirectory, ".metadata", "manifest.json");
@@ -169,7 +170,7 @@ public sealed class DatArchiveService
 
         if (files.Count == 0)
         {
-            throw new InvalidOperationException("A pasta selecionada não contém arquivos para reempacotar.");
+            throw new InvalidOperationException(Loc.Get("DatArchiveService.Error.NoFilesToRepack"));
         }
 
         // Match the original Ruby tool: when metadata exists, only repack the files
@@ -179,7 +180,7 @@ public sealed class DatArchiveService
         {
             if (manifest.Entries.Count == 0)
             {
-                throw new InvalidDataException("O manifest do .dat não possui entradas para reempacotar.");
+                throw new InvalidDataException(Loc.Get("DatArchiveService.Error.ManifestWithoutEntries"));
             }
 
             orderedFilePaths = new List<string>(manifest.Entries.Count);
@@ -189,7 +190,7 @@ public sealed class DatArchiveService
                 if (!File.Exists(localPath))
                 {
                     throw new FileNotFoundException(
-                        $"Falta um arquivo do layout original do .dat: '{entry.Name}'.",
+                        Loc.Format("DatArchiveService.Error.MissingOriginalLayoutFile", entry.Name),
                         localPath);
                 }
 
@@ -225,7 +226,7 @@ public sealed class DatArchiveService
             var extension = Path.GetExtension(relativePath);
             if (string.IsNullOrWhiteSpace(extension))
             {
-                throw new InvalidOperationException($"O arquivo '{relativePath}' não possui extensão válida.");
+                throw new InvalidOperationException(Loc.Format("DatArchiveService.Error.FileWithoutExtension", relativePath));
             }
 
             entries.Add(new DatArchiveEntry
@@ -407,14 +408,14 @@ public sealed class DatArchiveService
 
         if (data.Length < 0x20)
         {
-            error = "O arquivo é muito pequeno para ser um .dat válido.";
+            error = Loc.Get("DatArchiveService.Error.FileTooSmall");
             return false;
         }
 
         var magic = Encoding.ASCII.GetString(data, 0, 4);
         if (!magic.StartsWith("DAT", StringComparison.Ordinal))
         {
-            error = "O arquivo não possui o identificador DAT no cabeçalho.";
+            error = Loc.Get("DatArchiveService.Error.InvalidMagic");
             return false;
         }
 
@@ -451,7 +452,7 @@ public sealed class DatArchiveService
             return true;
         }
 
-        error = "Não foi possível determinar a endianness correta ou os offsets no cabeçalho são inválidos.";
+        error = Loc.Get("DatArchiveService.Error.InvalidEndianness");
         return false;
     }
 
