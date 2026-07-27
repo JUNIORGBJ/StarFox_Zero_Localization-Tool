@@ -173,7 +173,6 @@ public sealed class DatArchiveService
             throw new InvalidOperationException(Loc.Get("DatArchiveService.Error.NoFilesToRepack"));
         }
 
-        // Match the original Ruby tool: when metadata exists, only repack the files
         // declared in the extracted layout and preserve that exact order.
         List<string> orderedFilePaths;
         if (manifest != null)
